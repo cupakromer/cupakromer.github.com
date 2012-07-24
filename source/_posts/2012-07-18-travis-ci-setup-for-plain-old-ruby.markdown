@@ -3,7 +3,6 @@ layout: post
 title: "Travis CI Setup for Plain Old Ruby"
 date: 2012-07-18 01:11
 comments: false
-categories: 
 ---
 
 I recently wanted to setup some automated testing for a mini project I
@@ -21,7 +20,7 @@ In the end, it came down to needing three things:
 
 * A `.travis.yml` file
 
-``` YAML .travis.yml
+```yaml .travis.yml
 language: ruby
 rvm:
   - 1.9.2
