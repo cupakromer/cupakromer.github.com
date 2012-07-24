@@ -3,11 +3,10 @@
 # ----------------------- #
 
 url: http://cupakromer.github.com
-title: Aaron Kromer's Blog
-subtitle: A little cup 'a Kromer with your code
+title: "Aaron Kromer's Blog"
+subtitle: "A little cup'a Kromer with your code"
 author: Aaron Kromer
 simple_search: http://google.com/search
-auto: true
 
 # Default date format is "ordinal" (resulting in "July 22nd 2007")
 # You can customize the format as defined in
@@ -56,7 +55,7 @@ default_asides: [asides/recent_posts.html, asides/github.html, asides/twitter.ht
 
 # Github repositories
 github_user: cupakromer
-github_repo_count: 0
+github_repo_count: 2
 github_show_profile_link: true
 github_skip_forks: true
 
