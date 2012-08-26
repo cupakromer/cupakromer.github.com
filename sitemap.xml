@@ -4,14 +4,20 @@
         <loc>
             http://cupakromer.github.com/blog/2012-07-18-travis-ci-setup-for-plain-old-ruby.html
         </loc>
-        <lastmod>2012-07-18T23:35:48-04:00</lastmod>
+        <lastmod>2012-08-26T17:13:18-04:00</lastmod>
+    </url>
+    <url>
+        <loc>
+            http://cupakromer.github.com/blog/2012-08-14-everyone-should-learn-meta-programming.html
+        </loc>
+        <lastmod>2012-08-26T17:09:10-04:00</lastmod>
     </url>
     <url>
         <loc>http://cupakromer.github.com/blog/archives/</loc>
-        <lastmod>2012-07-18T23:35:48-04:00</lastmod>
+        <lastmod>2012-08-26T17:13:18-04:00</lastmod>
     </url>
     <url>
         <loc>http://cupakromer.github.com/</loc>
-        <lastmod>2012-07-18T23:35:48-04:00</lastmod>
+        <lastmod>2012-08-26T17:13:18-04:00</lastmod>
     </url>
 </urlset>

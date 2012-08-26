@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: meta | Aaron Kromer's Blog]]></title>
+  <link href="http://cupakromer.github.com/blog/categories/meta/atom.xml" rel="self"/>
+  <link href="http://cupakromer.github.com/"/>
+  <updated>2012-08-26T17:14:18-04:00</updated>
+  <id>http://cupakromer.github.com/</id>
+  <author>
+    <name><![CDATA[Aaron Kromer]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Everyone Should Learn metaprogramming]]></title>
+    <link href="http://cupakromer.github.com/blog/2012-08-14-everyone-should-learn-meta-programming.html"/>
+    <updated>2012-08-14T17:54:00-04:00</updated>
+    <id>http://cupakromer.github.com/blog/everyone-should-learn-meta-programming</id>
+    <content type="html"><![CDATA[<p>A few weeks ago was the first <a href="http://steelcityrubyconf.org/">Steel City Ruby conference</a>.
+It was a great conference and I would highly recommend you attend next
+year. While there, I had the opportunity to give my first lightning talk.</p>
+
+<p><a href="http://www.flickr.com/photos/charliekilo/7717397572/in/photostream"><img class="right" src="/images/scrc12_lightning_talk.jpg" width="391" height="287" title="12 Lightning Talk" alt="An image of me presenting at SCRC12"></a>
+Now I'm not one for public speaking, in fact it's terrifying for me.
+However, the Ruby community is awesome, friendly, and very encouraging.
+After thinking about it for a while, talking with several people, and
+reflecting on my time participating in <a href="http://scrappyacademy.com/">Scrappy Academy</a>,
+I decided that it was important to speak up about metaprogramming.</p>
+
+<p>I titled my talk: "<em>Demystifying Metaprogramming</em>." The intent was to
+encourage those people who are afraid of "metaprogramming" to give it a
+try. I strongly believe if you have been programming Ruby (or Rails -
+this is just Ruby with a fun web framework) for more than two months,
+you owe it to yourself to learn metaprogramming.</p>
+
+<p>To most people, this included me, they hear about "metaprogramming" as
+this advanced technique that should be avoided by all but the most
+wizardly among us. Frankly, this big scary stigma attached to
+metaprogramming just isn't warranted.</p>
+
+<p><span class='pullquote-right' data-pullquote='&#8220;metaprogramming&#8221; is just
+programming'>
+I'll let you in on the big secret, "metaprogramming" is just
+programming. Yep. It's not scary. It may be a bit complicated, but at
+the end of the day it is well worth your time to learn. You may even find
+it to be fun.
+</span></p>
+
+<p>To help ease you into the topic, we'll start with a simple contrived
+example to demonstrate that you already know everything needed to get
+started.</p>
+
+<p><code>ruby
+def say( phrase )
+  puts phrase
+end
+</code></p>
+
+<p>Yep. That's a really basic method. It simply <code>puts</code> the object that is
+passed in. To use this method in <a href="http://en.wikipedia.org/wiki/Interactive_Ruby_Shell">irb</a>
+or <a href="https://github.com/pry/pry">pry</a> we could simply:</p>
+
+<p>```ruby</p>
+
+<blockquote><p>def say( phrase )
+*  puts phrase
+* end
+=> nil
+say "Steel City Ruby I heard you like programming."
+Steel City Ruby I heard you like programming.
+=> nil
+```</p></blockquote>
+
+<p>This shouldn't be anything shocking so far. In fact, all we've done is
+create a method that calls a method (<code>puts</code>) and pass it a parameter. In
+fact, this concept is at the heart of the "meta" programming.</p>
+
+<p>All you really are doing is writing methods, that call another method,
+and pass it a parameter. It just so happens that the parameter you pass,
+tends to be a block that defines a new method.</p>
+
+<p><blockquote><p>Write a method that calls a method that creates a method.</p></blockquote></p>
+
+<p>So to extend our example and add the "meta" part to it, we'll just:</p>
+
+<ul>
+<li>Wrap our method in another method</li>
+<li>Pass our method as the parameter to another method</li>
+</ul>
+
+
+<p>```ruby
+def just_programming
+  class_eval do</p>
+
+<pre><code>def say( phrase )
+  puts phrase
+end
+</code></pre>
+
+<p>  end
+end
+```</p>
+
+<p>In this case, we're using the special <a href="http://www.ruby-doc.org/core-1.9.3/Module.html#method-i-class_eval"><code>class_eval</code></a>
+method. In a nutshell, this will change the value of <code>self</code> and then
+execute the block in this context. In our case, we provide it a block
+which contains the method definition we wish to dynmically create. The
+trick here is that class definitions and methods are active code. So the
+call to <code>def say( phrase )</code> is run just as if we had typed it directly
+in the original class definition.</p>
+
+<p>To be able to use this in a context more familiar, we'll just wrap this
+in a module. We can then <code>extend</code> that module in our class and
+dynamically create our method by using our class method
+<code>just_programming</code>.</p>
+
+<p>```ruby
+module Meta
+  def just_programming</p>
+
+<pre><code>class_eval do
+  def say( phrase )
+    puts phrase
+  end
+end
+</code></pre>
+
+<p>  end
+end</p>
+
+<p>class Foo
+  extend Meta
+  just_programming
+end</p>
+
+<p>f = Foo.new
+f.say "Steel City Ruby I heard you like programming."
+=> "Steel City Ruby I heard you like programming."
+```</p>
+
+<p>I hope this has helped illustrate that "metaprogramming" is only
+programming. It isn't anything to be afraid of. Sure, it can get
+complicated at times, but then, what code concepts beyond the bare
+basics can't?</p>
+
+<p>You owe it to yourself to learn these nifty and fun coding techniques.
+They will demystify manly things you think are "magic", provide a
+deeper understanding of the Ruby language, and add tools to your
+belt enabling you to write better code.</p>
+
+<p>There are many resources on these topics if you do a search.
+Additionally, <a href="http://pragprog.com/">The Pragmatic Bookshelf</a> has a
+good set of resources on Ruby and metaprogramming. I found the
+videos series on <a href="http://pragprog.com/screencasts/v-dtrubyom/the-ruby-object-model-and-metaprogramming">The Ruby Object Model and Metaprogramming</a>
+very enlightening.</p>
+
+<p>Happy programming!</p>
+]]></content>
+  </entry>
+  
+</feed>
