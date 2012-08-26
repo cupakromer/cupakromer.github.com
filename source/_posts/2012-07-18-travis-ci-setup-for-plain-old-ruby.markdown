@@ -3,6 +3,9 @@ layout: post
 title: "Travis CI Setup for Plain Old Ruby"
 date: 2012-07-18 01:11
 comments: false
+categories:
+- ruby
+- travis ci
 ---
 
 I recently wanted to setup some automated testing for a mini project I
