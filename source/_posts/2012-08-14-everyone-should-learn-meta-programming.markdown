@@ -71,7 +71,7 @@ and pass it a parameter. It just so happens that the parameter you pass,
 tends to be a block that defines a new method.
 
 {% blockquote %}
-Write a method that calls a method that creates a method.
+Write a method, that calls a method, that creates a method.*
 {% endblockquote %}
 
 So to extend our example and add the "meta" part to it, we'll just:
@@ -140,3 +140,7 @@ videos series on [The Ruby Object Model and Metaprogramming](http://pragprog.com
 very enlightening.
 
 Happy programming!
+
+\* Technically, this should really be "Write a method, that _sends a
+message_, that creates a method." However, I wanted to emphasise the
+progression and went with this version.
