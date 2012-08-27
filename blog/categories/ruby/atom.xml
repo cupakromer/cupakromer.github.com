@@ -4,7 +4,7 @@
   <title><![CDATA[Category: ruby | Aaron Kromer's Blog]]></title>
   <link href="http://cupakromer.github.com/blog/categories/ruby/atom.xml" rel="self"/>
   <link href="http://cupakromer.github.com/"/>
-  <updated>2012-08-26T17:30:51-04:00</updated>
+  <updated>2012-08-26T21:35:11-04:00</updated>
   <id>http://cupakromer.github.com/</id>
   <author>
     <name><![CDATA[Aaron Kromer]]></name>
@@ -81,7 +81,7 @@ fact, this concept is at the heart of the "meta" programming.</p>
 and pass it a parameter. It just so happens that the parameter you pass,
 tends to be a block that defines a new method.</p>
 
-<p><blockquote><p>Write a method that calls a method that creates a method.</p></blockquote></p>
+<p><blockquote><p>Write a method, that calls a method, that creates a method.*</p></blockquote></p>
 
 <p>So to extend our example and add the "meta" part to it, we'll just:</p>
 
@@ -158,6 +158,10 @@ videos series on <a href="http://pragprog.com/screencasts/v-dtrubyom/the-ruby-ob
 very enlightening.</p>
 
 <p>Happy programming!</p>
+
+<p>* Technically, this should really be "Write a method, that <em>sends a
+message</em>, that creates a method." However, I wanted to emphasise the
+progression and went with this version.</p>
 ]]></content>
   </entry>
   
