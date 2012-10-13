@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: equality | Aaron Kromer's Blog]]></title>
+  <link href="http://cupakromer.github.com/blog/categories/equality/atom.xml" rel="self"/>
+  <link href="http://cupakromer.github.com/"/>
+  <updated>2012-10-12T20:03:47-04:00</updated>
+  <id>http://cupakromer.github.com/</id>
+  <author>
+    <name><![CDATA[Aaron Kromer]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[== the Forgotten Equality]]></title>
+    <link href="http://cupakromer.github.com/blog/2012-10-12-equals-equals-the-forgotten-equality.html"/>
+    <updated>2012-10-12T19:04:00-04:00</updated>
+    <id>http://cupakromer.github.com/blog/equals-equals-the-forgotten-equality</id>
+    <content type="html"><![CDATA[<p>Recently I was looking for a way to do a comparison on a <code>String</code> with
+either another <code>String</code> or a <code>Regexp</code>. Most of the discussions on equality
+focused on <code>==</code>, <code>eql?</code>, <code>equal?</code>. None of which would satisfy the requirement.
+So I was left with this code:</p>
+
+<p>```ruby
+def matches(compare_with)
+  if compare_with.is_a?(Regexp)</p>
+
+<pre><code>@data_string =~ compare_with
+</code></pre>
+
+<p>  else</p>
+
+<pre><code>@data_string == compare_with
+</code></pre>
+
+<p>  end
+end
+```</p>
+
+<p>I was less than thrilled. So I did what everyone does, I asked the internet.
+Thanks to Twitter, specifically James Edward Gray II
+<a href="https://twitter.com/jeg2">@JEG2</a> who btw completely rocks, I was pointed at
+<code>===</code>. Though the documentation on <code>===</code> leaves something to be desired:</p>
+
+<p>  <blockquote><p>Used to compare each of the items with the target in the <code>when</code> clause of<br/>  a <code>case</code> statement.</p><footer><strong>Dave Thomas, Programming Ruby 1.9, page 128</strong> <cite><a href='http://pragprog.com/book/ruby/programming-ruby'>pragprog.com/book/ruby/&hellip;</a></cite></footer></blockquote></p>
+
+<ul>
+<li>The <a href="http://ruby-doc.org/core-1.9.3/String.html#method-i-3D-3D-3D">String API</a>
+sneakily directs you to <code>==</code> but doesn't outright state they are the same</li>
+<li>The <a href="http://ruby-doc.org/core-1.9.3/Regexp.html#method-i-3D-3D-3D">Regexp API</a>
+states it as a synonym for <a href="http://ruby-doc.org/core-1.9.3/Regexp.html#method-i-3D-7E"><code>Regexp#=~</code></a></li>
+</ul>
+
+
+<p>The thing to remember is with <code>case</code> when you have the following:</p>
+
+<p><code>ruby
+case thing
+when other_thing
+  # stuff
+end
+</code></p>
+
+<p>You are just saying <code>other_thing === thing</code>. The comparison is performed with
+the <code>when</code> expression as the lvalue.</p>
+
+<p>This means I could rewrite the <code>matches</code> method as:</p>
+
+<p><code>ruby
+def matches(compare_with)
+  compare_with === @data_string
+end
+</code></p>
+
+<p>This also means it's possible to be more flexible on the match:</p>
+
+<p>```ruby</p>
+
+<h1>@data_string = "coding for fun"</h1>
+
+<p>matches "oding"           # false
+matches "coding for fun"  # true
+matches /oding/           # true
+matches String            # true
+```</p>
+
+<p>So, the next time you're thinking of writing some code that needs to
+change based on class type or how something compares with something else, think
+if a <code>case</code> statement applies. If it does, see if <code>===</code> works to produce better
+code.</p>
+]]></content>
+  </entry>
+  
+</feed>

@@ -9,9 +9,9 @@
   <meta name="author" content="Aaron Kromer">
 
   
-  <meta name="description" content="A few weeks ago was the first Steel City Ruby conference.
-It was a great conference and I would highly recommend you attend next
-year. While there, I &hellip;">
+  <meta name="description" content="Recently I was looking for a way to do a comparison on a String with
+either another String or a Regexp. Most of the discussions on equality
+focused &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -78,6 +78,124 @@ year. While there, I &hellip;">
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012-10-12-equals-equals-the-forgotten-equality.html">== the Forgotten Equality</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-10-12T19:04:00-04:00" pubdate data-updated="true">Oct 12<span>th</span>, 2012</time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Recently I was looking for a way to do a comparison on a <code>String</code> with
+either another <code>String</code> or a <code>Regexp</code>. Most of the discussions on equality
+focused on <code>==</code>, <code>eql?</code>, <code>equal?</code>. None of which would satisfy the requirement.
+So I was left with this code:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">def</span> <span class="nf">matches</span><span class="p">(</span><span class="n">compare_with</span><span class="p">)</span>
+</span><span class='line'>  <span class="k">if</span> <span class="n">compare_with</span><span class="o">.</span><span class="n">is_a?</span><span class="p">(</span><span class="no">Regexp</span><span class="p">)</span>
+</span><span class='line'>    <span class="vi">@data_string</span> <span class="o">=~</span> <span class="n">compare_with</span>
+</span><span class='line'>  <span class="k">else</span>
+</span><span class='line'>    <span class="vi">@data_string</span> <span class="o">==</span> <span class="n">compare_with</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>I was less than thrilled. So I did what everyone does, I asked the internet.
+Thanks to Twitter, specifically James Edward Gray II
+<a href="https://twitter.com/jeg2">@JEG2</a> who btw completely rocks, I was pointed at
+<code>===</code>. Though the documentation on <code>===</code> leaves something to be desired:</p>
+
+<p>  <blockquote><p>Used to compare each of the items with the target in the <code>when</code> clause of<br/>  a <code>case</code> statement.</p><footer><strong>Dave Thomas, Programming Ruby 1.9, page 128</strong> <cite><a href='http://pragprog.com/book/ruby/programming-ruby'>pragprog.com/book/ruby/&hellip;</a></cite></footer></blockquote></p>
+
+<ul>
+<li>The <a href="http://ruby-doc.org/core-1.9.3/String.html#method-i-3D-3D-3D">String API</a>
+sneakily directs you to <code>==</code> but doesn&#8217;t outright state they are the same</li>
+<li>The <a href="http://ruby-doc.org/core-1.9.3/Regexp.html#method-i-3D-3D-3D">Regexp API</a>
+states it as a synonym for <a href="http://ruby-doc.org/core-1.9.3/Regexp.html#method-i-3D-7E"><code>Regexp#=~</code></a></li>
+</ul>
+
+
+<p>The thing to remember is with <code>case</code> when you have the following:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">case</span> <span class="n">thing</span>
+</span><span class='line'><span class="k">when</span> <span class="n">other_thing</span>
+</span><span class='line'>  <span class="c1"># stuff</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>You are just saying <code>other_thing === thing</code>. The comparison is performed with
+the <code>when</code> expression as the lvalue.</p>
+
+<p>This means I could rewrite the <code>matches</code> method as:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">def</span> <span class="nf">matches</span><span class="p">(</span><span class="n">compare_with</span><span class="p">)</span>
+</span><span class='line'>  <span class="n">compare_with</span> <span class="o">===</span> <span class="vi">@data_string</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>This also means it&#8217;s possible to be more flexible on the match:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="c1"># @data_string = &quot;coding for fun&quot;</span>
+</span><span class='line'><span class="n">matches</span> <span class="s2">&quot;oding&quot;</span>           <span class="c1"># false</span>
+</span><span class='line'><span class="n">matches</span> <span class="s2">&quot;coding for fun&quot;</span>  <span class="c1"># true</span>
+</span><span class='line'><span class="n">matches</span> <span class="sr">/oding/</span>           <span class="c1"># true</span>
+</span><span class='line'><span class="n">matches</span> <span class="nb">String</span>            <span class="c1"># true</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>So, the next time you&#8217;re thinking of writing some code that needs to
+change based on class type or how something compares with something else, think
+if a <code>case</code> statement applies. If it does, see if <code>===</code> works to produce better
+code.</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -395,6 +513,10 @@ to experience the fun of CI.</p>
     <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2012-10-12-equals-equals-the-forgotten-equality.html">== the Forgotten Equality</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2012-08-14-everyone-should-learn-meta-programming.html">Everyone Should Learn metaprogramming</a>
