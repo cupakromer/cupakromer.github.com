@@ -4,7 +4,7 @@
   <title><![CDATA[Category: ruby | Aaron Kromer's Blog]]></title>
   <link href="http://cupakromer.github.com/blog/categories/ruby/atom.xml" rel="self"/>
   <link href="http://cupakromer.github.com/"/>
-  <updated>2012-10-12T20:03:47-04:00</updated>
+  <updated>2012-10-16T21:04:33-04:00</updated>
   <id>http://cupakromer.github.com/</id>
   <author>
     <name><![CDATA[Aaron Kromer]]></name>
@@ -14,10 +14,10 @@
 
   
   <entry>
-    <title type="html"><![CDATA[== the Forgotten Equality]]></title>
-    <link href="http://cupakromer.github.com/blog/2012-10-12-equals-equals-the-forgotten-equality.html"/>
+    <title type="html"><![CDATA[=== the Forgotten Equality]]></title>
+    <link href="http://cupakromer.github.com/blog/2012-10-12-equals-equals-equals-the-forgotten-equality.html"/>
     <updated>2012-10-12T19:04:00-04:00</updated>
-    <id>http://cupakromer.github.com/blog/equals-equals-the-forgotten-equality</id>
+    <id>http://cupakromer.github.com/blog/equals-equals-equals-the-forgotten-equality</id>
     <content type="html"><![CDATA[<p>Recently I was looking for a way to do a comparison on a <code>String</code> with
 either another <code>String</code> or a <code>Regexp</code>. Most of the discussions on equality
 focused on <code>==</code>, <code>eql?</code>, <code>equal?</code>. None of which would satisfy the requirement.
