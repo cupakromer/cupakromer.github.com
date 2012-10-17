@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "== the Forgotten Equality"
+title: "=== the Forgotten Equality"
 date: 2012-10-12 19:04
 comments: true
 categories:
