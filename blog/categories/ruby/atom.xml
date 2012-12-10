@@ -4,7 +4,7 @@
   <title><![CDATA[Category: ruby | Aaron Kromer's Blog]]></title>
   <link href="http://cupakromer.github.com/blog/categories/ruby/atom.xml" rel="self"/>
   <link href="http://cupakromer.github.com/"/>
-  <updated>2012-10-16T21:04:33-04:00</updated>
+  <updated>2012-12-09T22:12:43-05:00</updated>
   <id>http://cupakromer.github.com/</id>
   <author>
     <name><![CDATA[Aaron Kromer]]></name>
@@ -12,6 +12,302 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[How Basic RSpec Works - Simplified]]></title>
+    <link href="http://cupakromer.github.com/blog/2012-12-09-how-basic-rspec-works-simplified.html"/>
+    <updated>2012-12-09T20:15:00-05:00</updated>
+    <id>http://cupakromer.github.com/blog/how-basic-rspec-works-simplified</id>
+    <content type="html"><![CDATA[<p>Recently, I had the privilege of giving a talk regarding
+<a href="http://rspec.info">RSpec</a> at the
+<a href="http://www.meetup.com/Arlington-Ruby/">Arlington Ruby</a> meetup group.
+The talk was about RSpec and how you can take some next steps with it
+(slides here: <a href="http://rspec-next-steps.herokuapp.com">http://rspec-next-steps.herokuapp.com</a>.</p>
+
+<p>The talk was targeted at intermediate RSpec users. There were several in
+attendance whom were fairly new to RSpec. This made some of the talk
+seem like "magic". Based on the questions I received, I wanted to take a
+moment to address some of the general workings of RSpec, in order to
+dispel any "magic" that may seem to be happening.</p>
+
+<p>It is my hope to try to show how <em>some</em> of this works. I won't be
+covering any of the more advanced topics just yet, as the code can get a
+bit complicated, and the point here is to simplify how RSpec works. So
+bare with me and the overly simplistic implementation. The full code is
+available in the following GitHub gist:
+<a href="https://gist.github.com/4247624">https://gist.github.com/4247624</a></p>
+
+<p>First, we need to setup some methods that define the basic usage of
+RSpec: <code>describe</code>, <code>subject</code>, <code>before</code>, <code>after</code>, and <code>it</code>.</p>
+
+<p>First up is the outer <code>describe</code>:</p>
+
+<p><code>ruby
+def describe(object_under_test, &amp;block)
+  @obj_under_test = object_under_test
+  @test_group     = block
+end
+</code></p>
+
+<p>In this example we are specifically only supporting a single <code>describe</code>
+block with no nesting. The reason here is for simplicity.  In our case
+<code>describe</code> is just a method that takes an object or description string
+and block. Nothing special. Hopefully, this helps make it clear that we
+are only dealing with a DSL for creating / setting up examples. We'll
+store away the test object in an instance variable and keep a reference
+to the block for later.</p>
+
+<p>Next, we setup a method for gaining access to subject:</p>
+
+<p>```ruby
+def subject
+  if @obj_under_test.is_a? Class</p>
+
+<pre><code>@subject ||= @obj_under_test.new
+</code></pre>
+
+<p>  else</p>
+
+<pre><code>@obj_under_test
+</code></pre>
+
+<p>  end
+end
+```</p>
+
+<p>If our subject is a <code>class</code>, we create a new memoized instance of it.
+Otherwise, we simply return the object itself.</p>
+
+<p>Next is the commonly used <code>before</code> blocks and the associated <code>after</code>
+friend:</p>
+
+<p><code>ruby
+def before(&amp;block) @before_hooks &lt;&lt; block end
+def after(&amp;block)  @after_hooks  &lt;&lt; block end
+</code></p>
+
+<p>In this simplistic implementation, it is easy to see how they work. We
+just keep a reference to all of the block in a normal array (in Ruby the
+order of insertion is preserved) for use later. We do the same with
+<code>after</code>.</p>
+
+<p>Last up, is the real meat of the examples, the <code>it</code> block:</p>
+
+<p>```ruby
+def it(description = nil, &amp;block)
+  @examples &lt;&lt; Example.new(description, block)
+end</p>
+
+<p>Example = Struct.new(:description, :test) do
+  attr_accessor :result, :failure
+  def call</p>
+
+<pre><code>@result = if test
+            begin
+              test.call
+              :passed
+            rescue =&gt; e
+              @failure = e
+              :failed
+            end
+          else
+            :pending
+          end
+</code></pre>
+
+<p>  end
+end
+```</p>
+
+<p>As with the <code>describe</code> method, this takes an optional description and a
+block to execute (our actual test). We'll need access to both of these
+later, and we'll have multiple examples, so we'll use a simple object to
+keep track of each.  After creating the example object, we'll store it
+in the queue.</p>
+
+<p>At this point it is worth taking a moment to discuss <code>Example#call</code>. We
+named it <code>call</code> so that accessing it is no different than a traditional
+block. This makes it easier to change code later.</p>
+
+<p>Inside <code>Example#call</code>, we attempt to pass <code>call</code> on the block that the
+<code>Example</code> was created with. If this raises an error, we store the
+exception for access later and mark the test as <code>failed</code>. Something to
+note here is that the return value of the <code>test</code> block is ignored. A
+test is marked as <code>passed</code> as long as it does not <code>raise</code> any errors.
+This is also how RSpec behaves.</p>
+
+<p>If no block was given when we created the <code>Example</code>, then we treat it as
+<code>pending</code>.  I have omitted the <code>pending</code> method, common in RSpec due to
+the complexity it would add to this example.</p>
+
+<p>Something else to note, since this is an overly simplistic example, we
+are doing everything in the global main namespace. RSpec does <em>not</em>
+behave this way, but it helps keep our example simple. Due to this,
+we'll need to setup some of our variables:</p>
+
+<p><code>ruby
+@before_hooks = []
+@after_hooks  = []
+@examples     = []
+</code></p>
+
+<p>Additionally, we don't have any matchers defined yet. To keep it simple,
+I'll add a TestUnit style <code>assert</code> matcher.</p>
+
+<p><code>ruby
+def assert(truthy)
+  truthy or raise Error.new("Test failed.")
+end
+</code></p>
+
+<p>At this point, I hope you can start to get the picture of how our
+simplified example will run.  We'll setup our <code>run</code> as follows:</p>
+
+<p>```ruby
+def run
+  raise 'No object under test defined.' unless @obj_under_test</p>
+
+<p>  puts @obj_under_test
+  return unless @test_group</p>
+
+<p>  # Find out what tests need to be run
+  @test_group.call</p>
+
+<p>  # Run the tests
+  @examples.each_with_index do |example, index|</p>
+
+<pre><code>@subject = nil
+puts "\n\nEXAMPLE #{index+1}:"
+begin
+  @before_hooks.each(&amp;:call)
+  example.call
+  puts "\n    #{example.description} =&gt; #{example.result.upcase}\n"
+rescue =&gt; e
+  puts "\n    #{example.description} =&gt; failed\n"
+ensure
+  @after_hooks.reverse_each(&amp;:call)
+end
+</code></pre>
+
+<p>  end
+end
+```</p>
+
+<p>If there is no object under test defined when we <code>run</code> (i.e. <code>describe</code>
+was never called) then we raise an error. Otherwise, we output the
+object under test. If this is a <code>class</code> (as is usual for a top level
+<code>describe</code> block) then we will see the class name. Otherwise, the object
+itself is output.  If it is a string, we'll get the string value,
+otherwise, we'll get the object's <code>#to_s</code> representation.</p>
+
+<p><em>It should be noted that in the real RSpec this outputting is much more
+complicated and left up to various output formatters.</em></p>
+
+<p>Next we will run the <code>test_group</code> (the body of the <code>describe</code> block). This
+in turn call all our <code>before</code>, <code>after</code>, and <code>it</code> methods, which set up our
+environment and define the examples.</p>
+
+<p>All that is left, is to iterate over the examples and run them. Here I'm
+using <code>each_with_index</code> solely to be able to add some debugging output
+to make it a bit clearer how things are running. Normally, this would be
+a simple <code>each</code> iterator.</p>
+
+<p>Before each test run, we make sure we have a new empty <code>subject</code>. We
+then iterate through each of the <code>before</code> blocks in the order they were
+defined. At this point we run the example. After the example runs, I'm
+immediately
+outputting the results to keep things simple. In the real RSpec, this is
+handled by an output formatter. Finally, all of the <code>after</code> hooks are
+run, but in reverse defined order.</p>
+
+<p>It should be noted, that here, as in the real RSpec, if any of the
+<code>before</code> blocks throw an exception the test fails. However, failures in
+any <code>after</code> block are ignored.</p>
+
+<p>That's it. We can then use this to define our sample spec:</p>
+
+<p>```ruby
+class Thing
+  attr_reader :my_value
+  def initialize</p>
+
+<pre><code>@my_value = rand 5
+</code></pre>
+
+<p>  end
+end</p>
+
+<p>describe Thing do
+  before { puts "BEFORE_BLOCK:: First before block" }
+  after do</p>
+
+<pre><code>print "AFTER_BLOCK:: should be called last!"
+print "    Reset @tmp_value(#{@tmp_value.inspect}) =&gt; "
+@tmp_value = nil
+puts "@tmp_value(#{@tmp_value.inspect})"
+</code></pre>
+
+<p>  end</p>
+
+<p>  it 'has access to subject' do</p>
+
+<pre><code>p subject
+assert subject.my_value &lt; 5
+</code></pre>
+
+<p>  end</p>
+
+<p>  it 'subject changes only between tests' do</p>
+
+<pre><code>p subject
+assert subject.equal?(subject)
+</code></pre>
+
+<p>  end</p>
+
+<p>  it "fails on error" do</p>
+
+<pre><code>raise Error.new 'Sad face'
+</code></pre>
+
+<p>  end</p>
+
+<p>  it 'works!' do</p>
+
+<pre><code>assert @tmp_value == 'test'
+</code></pre>
+
+<p>  end</p>
+
+<p>  before do</p>
+
+<pre><code>@tmp_value = 'test'
+print "BEFORE_BLOCK:: Another before block"
+puts "     Set @tmp_value(#{@tmp_value.inspect})"
+</code></pre>
+
+<p>  end</p>
+
+<p>  it 'is pending'</p>
+
+<p>  after { puts "AFTER_BLOCK:: should be called first!!" }
+end
+```</p>
+
+<p>I hope it is clear how this spec will end up running. This is not
+exactly equivalent to how RSpec will treat things (notice that we need
+to explicitly clear <code>@tmp_value</code> in an <code>after</code> block, where RSpec will
+do that for us). This is due to how RSpec creates example classses
+(which we are not using) and how it binds the blocks to different
+scopes; we are strictly using the <code>global</code> namespace to keep the example
+simple.</p>
+
+<p>Check out the gist for the code and output of the sample spec:
+<a href="http://gist.github.com/4247624">http://gist.github.com/4247624</a></p>
+
+<p>Stay tuned for more on RSpec in the future.</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[=== the Forgotten Equality]]></title>
