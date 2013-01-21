@@ -4,7 +4,7 @@
   <title><![CDATA[Category: ruby | Aaron Kromer's Blog]]></title>
   <link href="http://cupakromer.github.com/blog/categories/ruby/atom.xml" rel="self"/>
   <link href="http://cupakromer.github.com/"/>
-  <updated>2013-01-07T21:08:30-05:00</updated>
+  <updated>2013-01-20T19:57:10-05:00</updated>
   <id>http://cupakromer.github.com/</id>
   <author>
     <name><![CDATA[Aaron Kromer]]></name>
@@ -12,88 +12,6 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
-  
-  <entry>
-    <title type="html"><![CDATA[Quirky Privates]]></title>
-    <link href="http://cupakromer.github.com/blog/2013-01-07-quirky-privates.html"/>
-    <updated>2013-01-07T20:35:00-05:00</updated>
-    <id>http://cupakromer.github.com/blog/quirky-privates</id>
-    <content type="html"><![CDATA[<p>Just one of those little Ruby language quirks. Normally, you have to use
-the implicit receiver when sending a <code>private</code> message. This can be
-demonstrated as follows:</p>
-
-<p>```ruby
-class Quirky
-  def send_private_explicitly</p>
-
-<pre><code>self.say_hello    # =&gt; NoMethodError: private method 'say_hello'
-</code></pre>
-
-<p>  end</p>
-
-<p>  def send_private_implicitly</p>
-
-<pre><code>say_hello         # =&gt; "Hi there friend!"
-</code></pre>
-
-<p>  end</p>
-
-<p>  private</p>
-
-<p>  def say_hello</p>
-
-<pre><code>puts "Hi there friend!"
-</code></pre>
-
-<p>  end
-end
-```</p>
-
-<p>However, this is not true when sending a message that ends in <code>=</code>. In
-this case you <em>must</em> use the explicit receiver <code>self</code>.</p>
-
-<p>```ruby
-class Quirky
-  def send_private_setter_explicitly</p>
-
-<pre><code>self.store_value = 'friend'     # =&gt; @private_value='friend'
-store_value                     # =&gt; "Let's get our private value"
-</code></pre>
-
-<p>  end</p>
-
-<p>  def send_private_setter_implicitly</p>
-
-<pre><code>store_value = 'friend'          # =&gt; @private_value is not set
-store_value                     # =&gt; 'friend'
-</code></pre>
-
-<p>  end</p>
-
-<p>  private</p>
-
-<p>  def store_value=(value)</p>
-
-<pre><code>@private_value = value
-</code></pre>
-
-<p>  end</p>
-
-<p>  def store_value</p>
-
-<pre><code>puts "Let's get our private value"
-</code></pre>
-
-<p>  end
-end
-```</p>
-
-<p>In fact, without the explicit reciever <code>self</code> when sending a private
-message ending in <code>=</code>, you will instead create a local variable with
-that name. This is then the reference point for the rest of the method
-body.</p>
-]]></content>
-  </entry>
   
   <entry>
     <title type="html"><![CDATA[How Basic RSpec Works - Simplified]]></title>
