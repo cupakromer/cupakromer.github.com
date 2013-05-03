@@ -9,10 +9,8 @@
   <meta name="author" content="Aaron Kromer">
 
   
-  <meta name="description" content="Recently, I had the privilege of giving a talk regarding
-RSpec at the
-Arlington Ruby meetup group.
-The talk was about RSpec and how you can take some &hellip;">
+  <meta name="description" content="Just one of those little Ruby language quirks. Normally, you have to use
+the implicit receiver when sending a private message. This can be &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -80,6 +78,130 @@ The talk was about RSpec and how you can take some &hellip;">
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013-01-07-quirky-privates.html">Quirky Privates</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-01-07T20:35:00-05:00" pubdate data-updated="true">Jan 7<span>th</span>, 2013</time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Just one of those little Ruby language quirks. Normally, you have to use
+the implicit receiver when sending a <code>private</code> message. This can be
+demonstrated as follows:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Quirky</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">send_private_explicitly</span>
+</span><span class='line'>    <span class="nb">self</span><span class="o">.</span><span class="n">say_hello</span>    <span class="c1"># =&gt; NoMethodError: private method &#39;say_hello&#39;</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">send_private_implicitly</span>
+</span><span class='line'>    <span class="n">say_hello</span>         <span class="c1"># =&gt; &quot;Hi there friend!&quot;</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="kp">private</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">say_hello</span>
+</span><span class='line'>    <span class="nb">puts</span> <span class="s2">&quot;Hi there friend!&quot;</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>However, this is not true when sending a message that ends in <code>=</code>. In
+this case you <em>must</em> use the explicit receiver <code>self</code>.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Quirky</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">send_private_setter_explicitly</span>
+</span><span class='line'>    <span class="nb">self</span><span class="o">.</span><span class="n">store_value</span> <span class="o">=</span> <span class="s1">&#39;friend&#39;</span>     <span class="c1"># =&gt; @private_value=&#39;friend&#39;</span>
+</span><span class='line'>    <span class="n">store_value</span>                     <span class="c1"># =&gt; &quot;Let&#39;s get our private value&quot;</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">send_private_setter_implicitly</span>
+</span><span class='line'>    <span class="n">store_value</span> <span class="o">=</span> <span class="s1">&#39;friend&#39;</span>          <span class="c1"># =&gt; @private_value is not set</span>
+</span><span class='line'>    <span class="n">store_value</span>                     <span class="c1"># =&gt; &#39;friend&#39;</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="kp">private</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">store_value</span><span class="o">=</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+</span><span class='line'>    <span class="vi">@private_value</span> <span class="o">=</span> <span class="n">value</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">store_value</span>
+</span><span class='line'>    <span class="nb">puts</span> <span class="s2">&quot;Let&#39;s get our private value&quot;</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>In fact, without the explicit reciever <code>self</code> when sending a private
+message ending in <code>=</code>, you will instead create a local variable with
+that name. This is then the reference point for the rest of the method
+body.</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -912,6 +1034,10 @@ to experience the fun of CI.</p>
     <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2013-01-07-quirky-privates.html">Quirky Privates</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2012-12-09-how-basic-rspec-works-simplified.html">How Basic RSpec Works - Simplified</a>
