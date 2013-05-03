@@ -24,10 +24,11 @@ The talk was about RSpec and how you can take some &hellip;">
   <link rel="canonical" href="http://cupakromer.github.com/index.html">
   <link href="/favicon.png" rel="icon">
   <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
-  <script src="/javascripts/modernizr-2.0.js"></script>
-  <script src="/javascripts/ender.js"></script>
-  <script src="/javascripts/octopress.js" type="text/javascript"></script>
   <link href="/atom.xml" rel="alternate" title="Aaron Kromer's Blog" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/lib/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
   <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
 <link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
 <link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
@@ -882,10 +883,10 @@ necessary to get a basic Ruby project configured.</p>
 </span><span class='line'><span class="nb">require</span> <span class="s1">&#39;rspec/core/rake_task&#39;</span>
 </span><span class='line'>
 </span><span class='line'><span class="n">desc</span> <span class="s1">&#39;Default: Run specs.&#39;</span>
-</span><span class='line'><span class="n">task</span> <span class="n">default</span><span class="p">:</span> <span class="ss">:spec</span>
+</span><span class='line'><span class="n">task</span> <span class="ss">default</span><span class="p">:</span> <span class="ss">:spec</span>
 </span><span class='line'>
 </span><span class='line'><span class="n">desc</span> <span class="s1">&#39;Run specs&#39;</span>
-</span><span class='line'><span class="no">RSpec</span><span class="o">::</span><span class="no">Core</span><span class="o">::</span><span class="no">RakeTask</span><span class="o">.</span><span class="n">new</span> <span class="k">do</span> <span class="o">|</span><span class="n">task</span><span class="o">|</span>
+</span><span class='line'><span class="ss">RSpec</span><span class="p">:</span><span class="ss">:Core</span><span class="o">::</span><span class="no">RakeTask</span><span class="o">.</span><span class="n">new</span> <span class="k">do</span> <span class="o">|</span><span class="n">task</span><span class="o">|</span>
 </span><span class='line'>  <span class="n">task</span><span class="o">.</span><span class="n">rspec_opts</span> <span class="o">=</span> <span class="s2">&quot;--format doc&quot;</span>
 </span><span class='line'><span class="k">end</span>
 </span></code></pre></td></tr></table></div></figure>
@@ -940,7 +941,7 @@ to experience the fun of CI.</p>
   <a href="https://github.com/cupakromer">@cupakromer</a> on GitHub
   
   <script type="text/javascript">
-    $.domReady(function(){
+    $(document).ready(function(){
         if (!window.jXHR){
             var jxhr = document.createElement('script');
             jxhr.type = 'text/javascript';
@@ -958,23 +959,6 @@ to experience the fun of CI.</p>
     });
   </script>
   <script src="/javascripts/github.js" type="text/javascript"> </script>
-</section>
-
-
-<section>
-  <h1>Latest Tweets</h1>
-  <ul id="tweets">
-    <li class="loading">Status updating&#8230;</li>
-  </ul>
-  <script type="text/javascript">
-    $.domReady(function(){
-      getTwitterFeed("cupakromer", 4, false);
-    });
-  </script>
-  <script src="/javascripts/twitter.js" type="text/javascript"> </script>
-  
-    <a href="http://twitter.com/cupakromer" class="twitter-follow-button" data-show-count="false">Follow @cupakromer</a>
-  
 </section>
 
 

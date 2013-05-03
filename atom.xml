@@ -4,7 +4,7 @@
   <title><![CDATA[Aaron Kromer's Blog]]></title>
   <link href="http://cupakromer.github.com/atom.xml" rel="self"/>
   <link href="http://cupakromer.github.com/"/>
-  <updated>2013-01-20T19:57:10-05:00</updated>
+  <updated>2013-05-02T21:20:12-04:00</updated>
   <id>http://cupakromer.github.com/</id>
   <author>
     <name><![CDATA[Aaron Kromer]]></name>
@@ -711,10 +711,10 @@ necessary to get a basic Ruby project configured.</p>
 </span><span class='line'><span class="nb">require</span> <span class="s1">&#39;rspec/core/rake_task&#39;</span>
 </span><span class='line'>
 </span><span class='line'><span class="n">desc</span> <span class="s1">&#39;Default: Run specs.&#39;</span>
-</span><span class='line'><span class="n">task</span> <span class="n">default</span><span class="p">:</span> <span class="ss">:spec</span>
+</span><span class='line'><span class="n">task</span> <span class="ss">default</span><span class="p">:</span> <span class="ss">:spec</span>
 </span><span class='line'>
 </span><span class='line'><span class="n">desc</span> <span class="s1">&#39;Run specs&#39;</span>
-</span><span class='line'><span class="no">RSpec</span><span class="o">::</span><span class="no">Core</span><span class="o">::</span><span class="no">RakeTask</span><span class="o">.</span><span class="n">new</span> <span class="k">do</span> <span class="o">|</span><span class="n">task</span><span class="o">|</span>
+</span><span class='line'><span class="ss">RSpec</span><span class="p">:</span><span class="ss">:Core</span><span class="o">::</span><span class="no">RakeTask</span><span class="o">.</span><span class="n">new</span> <span class="k">do</span> <span class="o">|</span><span class="n">task</span><span class="o">|</span>
 </span><span class='line'>  <span class="n">task</span><span class="o">.</span><span class="n">rspec_opts</span> <span class="o">=</span> <span class="s2">&quot;--format doc&quot;</span>
 </span><span class='line'><span class="k">end</span>
 </span></code></pre></td></tr></table></div></figure>
