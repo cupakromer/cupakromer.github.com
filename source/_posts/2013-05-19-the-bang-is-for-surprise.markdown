@@ -329,7 +329,7 @@ This goes back to preference and style. My preference is to reach for a
 bareword whenever I can. One reason is that, when using an instance variables
 you are now locked in to how both `@bob` and `@alice` are created. If you later
 wanted to modify them, you could but at the expense of already having created
-the persisted resource. Remember `before` blocks execute outside-in (this isn't
+the persisted resource; remember `before` blocks execute outside-in (this isn't
 so much of an issue for lightweight objects). Or you have to roll your own
 memoization scheme (not hard just duplication of work).
 
@@ -347,11 +347,11 @@ end
 before { create_users }
 ```
 
-Now the `before` looks better; it's explicit what is happening. However, you've
-just added one level of indirection Also, the new `create_users` method looks
-just like our old `before`. The main advantage here is if we need to change the
-behavior we can just write a new `create_users` method in an inner context. We
-could also use barewords by making our variables into methods:
+Now the `before` looks better; it's explicit what is happening. However, the
+new `create_users` method looks just like our old `before`. So this really just
+added one level of indirection.  The main advantage here is if we need to
+change the behavior we can just write a new `create_users` method in an inner
+context. We could also use barewords by making our variables into methods:
 
 ```ruby
 def bob
