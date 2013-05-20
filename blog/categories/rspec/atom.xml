@@ -4,7 +4,7 @@
   <title><![CDATA[Category: rspec | Aaron Kromer's Blog]]></title>
   <link href="http://cupakromer.github.com/blog/categories/rspec/atom.xml" rel="self"/>
   <link href="http://cupakromer.github.com/"/>
-  <updated>2013-05-19T22:00:00-04:00</updated>
+  <updated>2013-05-20T08:42:43-04:00</updated>
   <id>http://cupakromer.github.com/</id>
   <author>
     <name><![CDATA[Aaron Kromer]]></name>
@@ -372,7 +372,7 @@ end
 bareword whenever I can. One reason is that, when using an instance variables
 you are now locked in to how both <code>@bob</code> and <code>@alice</code> are created. If you later
 wanted to modify them, you could but at the expense of already having created
-the persisted resource. Remember <code>before</code> blocks execute outside-in (this isn't
+the persisted resource; remember <code>before</code> blocks execute outside-in (this isn't
 so much of an issue for lightweight objects). Or you have to roll your own
 memoization scheme (not hard just duplication of work).</p>
 
@@ -390,11 +390,11 @@ end</p>
 <p>before { create_users }
 ```</p>
 
-<p>Now the <code>before</code> looks better; it's explicit what is happening. However, you've
-just added one level of indirection Also, the new <code>create_users</code> method looks
-just like our old <code>before</code>. The main advantage here is if we need to change the
-behavior we can just write a new <code>create_users</code> method in an inner context. We
-could also use barewords by making our variables into methods:</p>
+<p>Now the <code>before</code> looks better; it's explicit what is happening. However, the
+new <code>create_users</code> method looks just like our old <code>before</code>. So this really just
+added one level of indirection.  The main advantage here is if we need to
+change the behavior we can just write a new <code>create_users</code> method in an inner
+context. We could also use barewords by making our variables into methods:</p>
 
 <p>```ruby
 def bob
