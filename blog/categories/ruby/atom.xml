@@ -4,7 +4,7 @@
   <title><![CDATA[Category: ruby | Aaron Kromer's Blog]]></title>
   <link href="http://cupakromer.github.com/blog/categories/ruby/atom.xml" rel="self"/>
   <link href="http://cupakromer.github.com/"/>
-  <updated>2013-05-20T08:42:43-04:00</updated>
+  <updated>2013-07-01T21:51:00-04:00</updated>
   <id>http://cupakromer.github.com/</id>
   <author>
     <name><![CDATA[Aaron Kromer]]></name>
@@ -925,7 +925,10 @@ Thanks to Twitter, specifically James Edward Gray II
 <a href="https://twitter.com/jeg2">@JEG2</a> who btw completely rocks, I was pointed at
 <code>===</code>. Though the documentation on <code>===</code> leaves something to be desired:</p>
 
-<p>  <blockquote><p>Used to compare each of the items with the target in the <code>when</code> clause of<br/>  a <code>case</code> statement.</p><footer><strong>Dave Thomas, Programming Ruby 1.9, page 128</strong> <cite><a href='http://pragprog.com/book/ruby/programming-ruby'>pragprog.com/book/ruby/&hellip;</a></cite></footer></blockquote></p>
+<p>  {% blockquote Dave Thomas, Programming Ruby 1.9, page 128 http://pragprog.com/book/ruby/programming-ruby %}
+  Used to compare each of the items with the target in the <code>when</code> clause of
+  a <code>case</code> statement.
+  {% endblockquote %}</p>
 
 <ul>
 <li>The <a href="http://ruby-doc.org/core-1.9.3/String.html#method-i-3D-3D-3D">String API</a>
@@ -983,7 +986,7 @@ code.</p>
 It was a great conference and I would highly recommend you attend next
 year. While there, I had the opportunity to give my first lightning talk.</p>
 
-<p><a href="http://www.flickr.com/photos/charliekilo/7717397572/in/photostream"><img class="right" src="/images/scrc12_lightning_talk.jpg" width="391" height="287" title="12 Lightning Talk" alt="An image of me presenting at SCRC12"></a>
+<p><a href="http://www.flickr.com/photos/charliekilo/7717397572/in/photostream">{% img right /images/scrc12_lightning_talk.jpg 391 287 "SCRC'12 Lightning Talk" 'An image of me presenting at SCRC12' %}</a>
 Now I'm not one for public speaking, in fact it's terrifying for me.
 However, the Ruby community is awesome, friendly, and very encouraging.
 After thinking about it for a while, talking with several people, and
@@ -1001,13 +1004,12 @@ this advanced technique that should be avoided by all but the most
 wizardly among us. Frankly, this big scary stigma attached to
 metaprogramming just isn't warranted.</p>
 
-<p><span class='pullquote-right' data-pullquote='&#8220;metaprogramming&#8221; is just
-programming'>
-I'll let you in on the big secret, "metaprogramming" is just
-programming. Yep. It's not scary. It may be a bit complicated, but at
+<p>{% pullquote %}
+I'll let you in on the big secret, {" "metaprogramming" is just
+programming "}. Yep. It's not scary. It may be a bit complicated, but at
 the end of the day it is well worth your time to learn. You may even find
 it to be fun.
-</span></p>
+{% endpullquote %}</p>
 
 <p>To help ease you into the topic, we'll start with a simple contrived
 example to demonstrate that you already know everything needed to get
@@ -1042,7 +1044,9 @@ fact, this concept is at the heart of the "meta" programming.</p>
 and pass it a parameter. It just so happens that the parameter you pass,
 tends to be a block that defines a new method.</p>
 
-<p><blockquote><p>Write a method, that calls a method, that creates a method.*</p></blockquote></p>
+<p>{% blockquote %}
+Write a method, that calls a method, that creates a method.*
+{% endblockquote %}</p>
 
 <p>So to extend our example and add the "meta" part to it, we'll just:</p>
 
