@@ -1,10 +1,10 @@
 <!-- for more effects see _animate.scss -->
-<h1 class="animated bounceInDown">
-    <div id="headerbg">
-        {{ site.author }}
-    </div>
-</h1>
-<br>
+<hgroup id="headerbg">
+  <h1><a href="{{ root_url }}/">{{ site.title }}</a></h1>
+  {% if site.subtitle %}
+    <h2>{{ site.subtitle }}</h2>
+  {% endif %}
+</hgroup>
 
 {% include social.html %}
 
