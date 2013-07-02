@@ -71,7 +71,7 @@ article{
 }
 
 figure.code{
-	background: $pre-bg;
+	background: rgba(221,221,221,0.5);
 	border: 1px solid $pre-border;
 	margin-top: 10px;
 	padding: 5px 15px;
@@ -110,6 +110,7 @@ figure.code{
 		font-family: $font-mono;
 		padding-right: 15px;
 		text-align: right;
+    color: #bbb;
 	}
 	table{
 		border: none;
