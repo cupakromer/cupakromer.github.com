@@ -9,7 +9,7 @@
 		color: $color-gray01;
 		@include transition(color 0.3s);
 		&:hover{
-			color: $color-main;
+      color: lighten($color-gray01, 20%);
 		}
 	}
 	h1{
