@@ -24,10 +24,10 @@
 
 #headerbg {
     text-align: center;
-    background: #444;
+    background: #555;
     padding: 10px 10px;
     display: table;
-    color: #fff;
+    color: #eee;
     margin: 0 auto;
     border-radius: 5px;
     font-weight: bold;
@@ -155,7 +155,7 @@ display: inline;
 }
 
 #search input[type="text"] {
-    background: url('/images/search-dark.png') no-repeat 10px 6px #444;
+    background: url('/images/search-dark.png') no-repeat 10px 6px #555;
     border: 0 none;
     font: bold 12px Arial,Helvetica,Sans-serif;
     color: #777;
@@ -188,7 +188,7 @@ display: inline;
 }
 
 #dark #search input[type="text"] {
-    background: url('/images/search-dark.png') no-repeat 10px 6px #444;
+    background: url('/images/search-dark.png') no-repeat 10px 6px #555;
     border: 0 none;
     font: bold 12px Arial,Helvetica,Sans-serif;
     color: #ddd;
