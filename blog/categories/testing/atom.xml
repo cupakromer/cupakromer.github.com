@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: testing | Aaron Kromer's Blog]]></title>
+  <link href="http://cupakromer.github.com/blog/categories/testing/atom.xml" rel="self"/>
+  <link href="http://cupakromer.github.com/"/>
+  <updated>2013-07-11T13:01:16-04:00</updated>
+  <id>http://cupakromer.github.com/</id>
+  <author>
+    <name><![CDATA[Aaron Kromer]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Testing Scripts with Load]]></title>
+    <link href="http://cupakromer.github.com/blog/2013-07-11-testing-scripts-with-load.html"/>
+    <updated>2013-07-11T12:44:00-04:00</updated>
+    <id>http://cupakromer.github.com/blog/testing-scripts-with-load</id>
+    <content type="html"><![CDATA[<p>A standard method for testing Ruby scripts is to shell out to the script using
+<a href="http://ruby-doc.org/core-2.0/Kernel.html#method-i-60"><code>Kernel#`</code></a>
+or <a href="http://ruby-doc.org/core-2.0/Kernel.html#method-i-system"><code>Kernel#system</code></a>.
+Both of these follow a <a href="http://ruby-doc.org/core-2.0/Kernel.html#method-i-fork"><code>fork</code></a>
+and <a href="http://ruby-doc.org/core-2.0/Kernel.html#method-i-exec"><code>exec</code></a> pattern to
+run the command.</p>
+
+<p>However, there are instances where it is necessary to mock/stub something in
+the script.  The above technique fails in this situation due to <code>exec</code>
+replacing the current process; the stubs simply cease to exist.</p>
+
+<p>The solution: use <a href="http://ruby-doc.org/core-2.0/Kernel.html#method-i-load"><code>load</code></a></p>
+
+<p>```ruby</p>
+
+<h1>Script</h1>
+
+<h1>!/usr/bin/env ruby</h1>
+
+<p>$:.unshift File.join File.dirname(<strong>FILE</strong>), "..", "lib"</p>
+
+<p>require 'logger'
+require 'monitor'
+require 'pathname'
+require 'temperature_api'
+require 'tracker'</p>
+
+<p>logger    = Logger.new($stderr)
+file_path = Pathname.new(ARGV[0])
+tracker   = Tracker.new(backup: file_path)
+api       = TemperatureApi.new('api.server.com')</p>
+
+<p>Monitor.new(tracker, api, logger).run
+```</p>
+
+<p>```ruby</p>
+
+<h1>Spec</h1>
+
+<p>describe 'Monitoring cpu heat' do</p>
+
+<p>  it 'uploads the temperature to the server' do</p>
+
+<pre><code>stub_const('ARGV', ['monitor-integration.bak'])
+stub_request(:put, 'https://api.server.com/temp').to_return(status: 200)
+
+expect(load 'script/monitor')
+  .to have_requested(:put, 'https://api.server.com/temp')
+  .with(body: /\A{"temp":\d+}\z/)
+</code></pre>
+
+<p>  end</p>
+
+<p>end
+```</p>
+
+<p>In conclusion, no more excuses for not have integration tests for your scripts.</p>
+]]></content>
+  </entry>
+  
+</feed>

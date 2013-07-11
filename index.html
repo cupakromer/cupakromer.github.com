@@ -6,8 +6,9 @@
 	<title>Aaron Kromer's Blog</title>
     <meta name="author" content="Aaron Kromer">
     
-	<meta name="description" content="Published on: May 19th, 2013 Tags: rspec, ruby Note: I&#8217;m using Ruby 2.0.0 and RSpec 2.13.1 for these samples. Behavior
-may be slightly &hellip;">
+	<meta name="description" content="Published on: Jul 11th, 2013 Tags: ruby, script, testing A standard method for testing Ruby scripts is to shell out to the script using
+Kernel#`
+or &hellip;">
 	
 	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 
@@ -102,6 +103,127 @@ may be slightly &hellip;">
 <!-- begin toload --> 
     <div id="content" class="inner">
         
+
+
+    <article class="post">
+	<h2 class="title">
+		
+		<a href="/blog/2013-07-11-testing-scripts-with-load.html">
+		
+			Testing Scripts With Load</a>
+	</h2>
+    <div class="entry-content">
+    <div class="meta">
+      <div class="date">Published on: 
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-07-11T12:44:00-04:00" pubdate data-updated="true">Jul 11<span>th</span>, 2013</time></div>
+      <div class="tags">Tags: 
+
+
+	<a class='category' href='/blog/categories/ruby/'>ruby</a>, <a class='category' href='/blog/categories/script/'>script</a>, <a class='category' href='/blog/categories/testing/'>testing</a>
+
+
+</div>
+    </div>
+		<p>A standard method for testing Ruby scripts is to shell out to the script using
+<a href="http://ruby-doc.org/core-2.0/Kernel.html#method-i-60"><code>Kernel#`</code></a>
+or <a href="http://ruby-doc.org/core-2.0/Kernel.html#method-i-system"><code>Kernel#system</code></a>.
+Both of these follow a <a href="http://ruby-doc.org/core-2.0/Kernel.html#method-i-fork"><code>fork</code></a>
+and <a href="http://ruby-doc.org/core-2.0/Kernel.html#method-i-exec"><code>exec</code></a> pattern to
+run the command.</p>
+
+<p>However, there are instances where it is necessary to mock/stub something in
+the script.  The above technique fails in this situation due to <code>exec</code>
+replacing the current process; the stubs simply cease to exist.</p>
+
+<p>The solution: use <a href="http://ruby-doc.org/core-2.0/Kernel.html#method-i-load"><code>load</code></a></p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="c1"># Script</span>
+</span><span class='line'><span class="c1">#!/usr/bin/env ruby</span>
+</span><span class='line'><span class="vg">$:</span><span class="o">.</span><span class="n">unshift</span> <span class="no">File</span><span class="o">.</span><span class="n">join</span> <span class="no">File</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="bp">__FILE__</span><span class="p">),</span> <span class="s2">&quot;..&quot;</span><span class="p">,</span> <span class="s2">&quot;lib&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="nb">require</span> <span class="s1">&#39;logger&#39;</span>
+</span><span class='line'><span class="nb">require</span> <span class="s1">&#39;monitor&#39;</span>
+</span><span class='line'><span class="nb">require</span> <span class="s1">&#39;pathname&#39;</span>
+</span><span class='line'><span class="nb">require</span> <span class="s1">&#39;temperature_api&#39;</span>
+</span><span class='line'><span class="nb">require</span> <span class="s1">&#39;tracker&#39;</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">logger</span>    <span class="o">=</span> <span class="no">Logger</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="vg">$stderr</span><span class="p">)</span>
+</span><span class='line'><span class="n">file_path</span> <span class="o">=</span> <span class="no">Pathname</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="no">ARGV</span><span class="o">[</span><span class="mi">0</span><span class="o">]</span><span class="p">)</span>
+</span><span class='line'><span class="n">tracker</span>   <span class="o">=</span> <span class="no">Tracker</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="ss">backup</span><span class="p">:</span> <span class="n">file_path</span><span class="p">)</span>
+</span><span class='line'><span class="n">api</span>       <span class="o">=</span> <span class="no">TemperatureApi</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="s1">&#39;api.server.com&#39;</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'><span class="no">Monitor</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">tracker</span><span class="p">,</span> <span class="n">api</span><span class="p">,</span> <span class="n">logger</span><span class="p">)</span><span class="o">.</span><span class="n">run</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="c1"># Spec</span>
+</span><span class='line'><span class="n">describe</span> <span class="s1">&#39;Monitoring cpu heat&#39;</span> <span class="k">do</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">it</span> <span class="s1">&#39;uploads the temperature to the server&#39;</span> <span class="k">do</span>
+</span><span class='line'>    <span class="n">stub_const</span><span class="p">(</span><span class="s1">&#39;ARGV&#39;</span><span class="p">,</span> <span class="o">[</span><span class="s1">&#39;monitor-integration.bak&#39;</span><span class="o">]</span><span class="p">)</span>
+</span><span class='line'>    <span class="n">stub_request</span><span class="p">(</span><span class="ss">:put</span><span class="p">,</span> <span class="s1">&#39;https://api.server.com/temp&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">to_return</span><span class="p">(</span><span class="ss">status</span><span class="p">:</span> <span class="mi">200</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">expect</span><span class="p">(</span><span class="nb">load</span> <span class="s1">&#39;script/monitor&#39;</span><span class="p">)</span>
+</span><span class='line'>      <span class="o">.</span><span class="n">to</span> <span class="n">have_requested</span><span class="p">(</span><span class="ss">:put</span><span class="p">,</span> <span class="s1">&#39;https://api.server.com/temp&#39;</span><span class="p">)</span>
+</span><span class='line'>      <span class="o">.</span><span class="n">with</span><span class="p">(</span><span class="ss">body</span><span class="p">:</span> <span class="sr">/\A{&quot;temp&quot;:\d+}\z/</span><span class="p">)</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>In conclusion, no more excuses for not have integration tests for your scripts.</p>
+
+		
+		
+	</div>
+
+<div class="meta">
+	
+</div>
+</article>
 
 
     <article class="post">
