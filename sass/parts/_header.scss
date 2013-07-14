@@ -85,69 +85,21 @@
 
 
 #social-links {
+  text-align: center;
   li {
-    display:inline-block;
-    @include square(35px, 35px);
+    display: inline-block;
+    @include square(40px, 40px);
     margin-top: 20px;
     margin-right: 9px;
-    background-color: #ddd;
-    text-align: center;
     line-height: 35px;
-    @include transition(background-color 1s ease-in-out);
-    &:hover {
-      background-color: #555;
-    }
+    font-size: 1.3em;
   }
   a {
-    display: inline-block;
-    position: relative;
-    @include square(100%);
-    svg {
-      position: absolute;
-    }
-    .github {
-      top: 3px;
-      left: 2px;
-    }
-    .sina-weibo {
-      top: 8px;
-      left: 6px;
-    }
-    .tencent-weibo {
-      top: 6px;
-      left: 4px;
-    }
-    .twitter {
-      top: 2px;
-      left: 3px;
+    &:hover{
+      color: lighten($color-main, 10%);
     }
   }
 }
-
-a.facebook{background:url('/images/social/Facebook.png') center no-repeat;}
-a.facebook:hover{background:url('/images/social/FacebookH.png') center no-repeat;}
-
-a.github{background:url('/images/social/Github.png') center no-repeat;}
-a.github:hover{background:url('/images/social/GithubH.png') center no-repeat;}
-
-a.twitter{background:url('/images/social/Twitter.png') center no-repeat;}
-a.twitter:hover{background:url('/images/social/TwitterH.png') center no-repeat;}
-
-a.google{background:url('/images/social/Picasa.png') center no-repeat;}
-a.google:hover{background:url('/images/social/PicasaH.png') center no-repeat;}
-
-a.skype{background:url('/images/social/Skype.png') center no-repeat;}
-a.skype:hover{background:url('/images/social/SkypeH.png') center no-repeat;}
-
-a.linkedin{background:url('/images/social/LinkedIn.png') center no-repeat;}
-a.linkedin:hover{background:url('/images/social/LinkedInH.png') center no-repeat;}
-
-a.youtube{background:url('/images/social/Youtube.png') center no-repeat;}
-a.youtube:hover{background:url('/images/social/YoutubeH.png') center no-repeat;}
-
-a.lastfm{background:url('/images/social/LastFM.png') center no-repeat;}
-a.lastfm:hover{background:url('/images/social/LastFMH.png') center no-repeat;}
-
 
 /* search bar */
 #search {
@@ -216,7 +168,7 @@ a.lastfm:hover{background:url('/images/social/LastFMH.png') center no-repeat;}
 #nav {
   text-align:center;
   position: relative;
-  margin: 10px auto;
+  margin: 5px auto;
 }
 ul#nav li {
   display: inline-block;
