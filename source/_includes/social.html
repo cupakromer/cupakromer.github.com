@@ -2,49 +2,62 @@
   {% if site.github_user %}
   <!-- GitHub -->
   <li>
-  <a href="https://github.com/{{ site.github_user }}" class="github" title="Github"></a>
+    <a href="https://github.com/{{ site.github_user }}" title="GitHub">
+      <i class="foundicon-github"></i>
+    </a>
   </li>
   {% endif %}
   {% if site.googleplus_user %}
   <!-- Google Plus -->
   <li>
-  <a href="http://plus.google.com/{{ site.googleplus_user }}?rel=author" class="google" title="Google+"></a>
+    <a href="http://plus.google.com/{{ site.googleplus_user }}?rel=author" title="Google+">
+      <i class="foundicon-google-plus"></i>
+    </a>
   </li>
   {% endif %}
   {% if site.facebook_user %}
   <!-- Facebook -->
   <li>
-  <a href="http://www.facebook.com/{{ site.facebook_user }}" class="facebook" title="Facebook"></a>
+    <a href="http://www.facebook.com/{{ site.facebook_user }}" title="Facebook">
+      <i class="foundicon-facebook"></i>
+    </a>
   </li>
   {% endif %}
   {% if site.twitter_user %}
   <!-- Twitter -->
   <li>
-  <a href="http://www.twitter.com/{{ site.twitter_user }}" class="twitter" title="Twitter"></a>
+    <a href="http://www.twitter.com/{{ site.twitter_user }}" title="Twitter">
+      <i class="foundicon-twitter"></i>
+    </a>
   </li>
   {% endif %}
   {% if site.linkedin_user %}
   <!-- LinkedIn -->
   <li>
-  <a href="http://www.linkedin.com/in/{{ site.linkedin_user }}" class="linkedin" title="LinkedIn"></a>
+    <a href="http://www.linkedin.com/in/{{ site.linkedin_user }}" title="LinkedIn">
+      <i class="foundicon-linkedin"></i>
+    </a>
   </li>
   {% endif %}
   {% if site.skype_user %}
   <!-- Skype -->
   <li>
-  <a href="http://myskype.info/{{ site.skype_user }}" class="skype" title="Skype"></a>
+    <a href="http://myskype.info/{{ site.skype_user }}" title="Skype">
+      <i class="foundicon-skype"></i>
+    </a>
   </li>
   {% endif %}
   {% if site.youtube_user %}
   <!-- Youtube -->
   <li>
-  <a href="http://youtube.com/user/{{ site.youtube_user }}" class="youtube" title="Youtube"></a>
+    <a href="http://youtube.com/user/{{ site.youtube_user }}" title="Youtube">
+      <i class="foundicon-youtube"></i>
+    </a>
   </li>
   {% endif %}
-  {% if site.lastfm_user %}
-  <!-- LastFM -->
   <li>
-  <a href="http://www.lastfm.com/user/{{ site.lastfm_user }}" class="lastfm" title="LastFM"></a>
+    <a href="{{ root_url }}/atom.xml">
+      <i class="foundicon-rss"></i>
+    </a>
   </li>
-  {% endif %}
 </ul>
