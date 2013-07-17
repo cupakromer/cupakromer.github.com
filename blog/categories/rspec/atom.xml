@@ -4,7 +4,7 @@
   <title><![CDATA[Category: rspec | Aaron Kromer's Blog]]></title>
   <link href="http://cupakromer.github.com/blog/categories/rspec/atom.xml" rel="self"/>
   <link href="http://cupakromer.github.com/"/>
-  <updated>2013-07-14T17:48:04-04:00</updated>
+  <updated>2013-07-17T11:58:03-04:00</updated>
   <id>http://cupakromer.github.com/</id>
   <author>
     <name><![CDATA[Aaron Kromer]]></name>
@@ -12,6 +12,101 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Monitoring Specific Messages in RSpec]]></title>
+    <link href="http://cupakromer.github.com/blog/2013-07-17-monitoring-specific-messages-in-rspec.html"/>
+    <updated>2013-07-17T11:34:00-04:00</updated>
+    <id>http://cupakromer.github.com/blog/monitoring-specific-messages-in-rspec</id>
+    <content type="html"><![CDATA[<p>A common question I see asked in the #rspec IRC channel is:</p>
+
+<blockquote><p>How do I verify only a specific message is received?</p></blockquote>
+
+<p>The context of this question is usually a method that sends the same message
+multiple time, but with different arguments.</p>
+
+<p>Take the following contrived example:</p>
+
+<p>```ruby
+def do_stuff(thing)
+  thing.do :having_fun
+  thing.do :drink_coffee
+  thing.do :code
+end</p>
+
+<p>describe 'Coffee time!' do
+  it 'drinks the coffee' do</p>
+
+<pre><code>thing = double('Thing')
+
+expect(thing).to receive(:do).with(:drink_coffee)
+
+do_stuff thing
+</code></pre>
+
+<p>  end
+end
+```</p>
+
+<p>Alas, it fails:</p>
+
+<p>```text
+Double "Thing" received :do with unexpected arguments</p>
+
+<pre><code>     expected: (:drink_coffee)
+          got: (:having_fun)
+</code></pre>
+
+<p>```</p>
+
+<p>The solution is to add a generic stub (a catchall) for the desired message:</p>
+
+<p>```ruby
+describe 'Coffee time!' do
+  it 'drinks the coffee' do</p>
+
+<pre><code>thing = double('Thing')
+
+allow(thing).to receive(:do)
+expect(thing).to receive(:do).with(:drink_coffee)
+
+do_stuff thing
+</code></pre>
+
+<p>  end
+end
+```</p>
+
+<p>There is another solution which can also be used:
+<a href="https://www.relishapp.com/rspec/rspec-mocks/v/2-14/docs/method-stubs/as-null-object"><code>as_null_object</code></a>.</p>
+
+<p>The issue with <code>as_null_object</code> is that it will happily hum along even for
+invalid and unexpected messages. The double stub pattern above is
+explicit in the test, matching the catchall only with the message expectation.</p>
+
+<p>```ruby
+describe 'Coffee time!' do
+  it 'drinks the coffee' do</p>
+
+<pre><code>thing = double('Thing').as_null_object
+
+expect(thing).to receive(:do).with(:drink_coffee)
+
+do_stuff thing
+</code></pre>
+
+<p>  end
+end
+```</p>
+
+<p>Stay tuned for <a href="http://myronmars.to/n/dev-blog/2013/07/the-plan-for-rspec-3">RSpec3</a>
+when <code>as_null_object</code> doubles will be smart enough to only stub matching
+messages.  Or check out one of the many plugins:
+<a href="https://github.com/xaviershay/rspec-fire"><code>rspec-fire</code></a>,
+<a href="https://github.com/psyho/bogus"><code>bogus</code></a>, and
+<a href="https://github.com/ryanong/spy"><code>spy</code></a>.</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[The Bang is for Surprise]]></title>

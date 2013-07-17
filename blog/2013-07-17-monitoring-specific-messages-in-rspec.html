@@ -1,0 +1,286 @@
+
+<!DOCTYPE HTML>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>Monitoring Specific Messages in RSpec - Aaron Kromer's Blog</title>
+    <meta name="author" content="Aaron Kromer">
+    
+	<meta name="description" content="A common question I see asked in the #rspec IRC channel is: How do I verify only a specific message is received? The context of this question is &hellip;">
+	
+	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+	<link href="/atom.xml" rel="alternate" title="Aaron Kromer's Blog" type="application/atom+xml">
+	<link rel="canonical" href="">
+	<link href="/favicon.ico" rel="shortcut icon">
+    <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+
+    <link href='http://fonts.googleapis.com/css?family=Slackey' rel='stylesheet' type='text/css'>
+    <link href='http://fonts.googleapis.com/css?family=Fjalla+One' rel='stylesheet' type='text/css'>
+    <link href='http://fonts.googleapis.com/css?family=Amethysta' rel='stylesheet' type='text/css'>
+	<script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>
+    <!--[if lt IE 9]><script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script><![endif]-->
+
+    <script type="text/javascript" src="/javascripts/jquery-tapir.js"></script>
+
+    <!-- remove or comment it to disable ajaxification -->   
+    <script src="/javascripts/ajaxify.js"></script>
+   
+    
+    
+	<script type="text/javascript">
+		var _gaq = _gaq || [];
+		_gaq.push(['_setAccount', 'UA-34364108-1']);
+		_gaq.push(['_trackPageview']);
+
+		(function() {
+			var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+			ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+			var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+		})();
+	</script>
+
+
+</head>
+
+
+<body>
+    <div id="wrapper">
+    <header id="header" class="inner"><!-- for more effects see _animate.scss -->
+<hgroup id="headerbg">
+  <h1><a href="/">Aaron Kromer's Blog</a></h1>
+  
+    <h2>A little cup'a Kromer with your code</h2>
+  
+</hgroup>
+
+<ul id="social-links">
+  
+  <!-- GitHub -->
+  <li>
+    <a href="https://github.com/cupakromer" title="GitHub">
+      <i class="foundicon-github"></i>
+    </a>
+  </li>
+  
+  
+  
+  
+  <!-- Twitter -->
+  <li>
+    <a href="http://www.twitter.com/cupakromer" title="Twitter">
+      <i class="foundicon-twitter"></i>
+    </a>
+  </li>
+  
+  
+  
+  
+  <li>
+    <a href="/atom.xml">
+      <i class="foundicon-rss"></i>
+    </a>
+  </li>
+</ul>
+
+
+<!-- use full url including 'index.html' for navigation bar if you are using ajax -->
+<ul id="nav">
+  <li id="ajax"><a href="/index.html">Home</a></li>
+  <li id="ajax"><a href="/blog/archives/index.html">Archives</a></li>
+  
+  <li>
+    <div id="dark">
+      <form method="get" action="/search.html" id="search">
+        <input name="query" type="text" placeholder="Search..." x-webkit-speech />
+      </form>
+    </div>
+  </li>
+  
+</ul>
+
+
+
+
+</header>
+
+<div id="toload">
+<!-- begin toload --> 
+    <div id="content" class="inner">
+        <article class="post">
+	<h2 class="title">Monitoring Specific Messages in RSpec</h2>
+	<div class="entry-content"><p>A common question I see asked in the #rspec IRC channel is:</p>
+
+<blockquote><p>How do I verify only a specific message is received?</p></blockquote>
+
+<p>The context of this question is usually a method that sends the same message
+multiple time, but with different arguments.</p>
+
+<p>Take the following contrived example:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">def</span> <span class="nf">do_stuff</span><span class="p">(</span><span class="n">thing</span><span class="p">)</span>
+</span><span class='line'>  <span class="n">thing</span><span class="o">.</span><span class="n">do</span> <span class="ss">:having_fun</span>
+</span><span class='line'>  <span class="n">thing</span><span class="o">.</span><span class="n">do</span> <span class="ss">:drink_coffee</span>
+</span><span class='line'>  <span class="n">thing</span><span class="o">.</span><span class="n">do</span> <span class="ss">:code</span>
+</span><span class='line'><span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">describe</span> <span class="s1">&#39;Coffee time!&#39;</span> <span class="k">do</span>
+</span><span class='line'>  <span class="n">it</span> <span class="s1">&#39;drinks the coffee&#39;</span> <span class="k">do</span>
+</span><span class='line'>    <span class="n">thing</span> <span class="o">=</span> <span class="n">double</span><span class="p">(</span><span class="s1">&#39;Thing&#39;</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">expect</span><span class="p">(</span><span class="n">thing</span><span class="p">)</span><span class="o">.</span><span class="n">to</span> <span class="n">receive</span><span class="p">(</span><span class="ss">:do</span><span class="p">)</span><span class="o">.</span><span class="n">with</span><span class="p">(</span><span class="ss">:drink_coffee</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">do_stuff</span> <span class="n">thing</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Alas, it fails:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='text'><span class='line'>Double &quot;Thing&quot; received :do with unexpected arguments
+</span><span class='line'>         expected: (:drink_coffee)
+</span><span class='line'>              got: (:having_fun)
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The solution is to add a generic stub (a catchall) for the desired message:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">describe</span> <span class="s1">&#39;Coffee time!&#39;</span> <span class="k">do</span>
+</span><span class='line'>  <span class="n">it</span> <span class="s1">&#39;drinks the coffee&#39;</span> <span class="k">do</span>
+</span><span class='line'>    <span class="n">thing</span> <span class="o">=</span> <span class="n">double</span><span class="p">(</span><span class="s1">&#39;Thing&#39;</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">allow</span><span class="p">(</span><span class="n">thing</span><span class="p">)</span><span class="o">.</span><span class="n">to</span> <span class="n">receive</span><span class="p">(</span><span class="ss">:do</span><span class="p">)</span>
+</span><span class='line'>    <span class="n">expect</span><span class="p">(</span><span class="n">thing</span><span class="p">)</span><span class="o">.</span><span class="n">to</span> <span class="n">receive</span><span class="p">(</span><span class="ss">:do</span><span class="p">)</span><span class="o">.</span><span class="n">with</span><span class="p">(</span><span class="ss">:drink_coffee</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">do_stuff</span> <span class="n">thing</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>There is another solution which can also be used:
+<a href="https://www.relishapp.com/rspec/rspec-mocks/v/2-14/docs/method-stubs/as-null-object"><code>as_null_object</code></a>.</p>
+
+<p>The issue with <code>as_null_object</code> is that it will happily hum along even for
+invalid and unexpected messages. The double stub pattern above is
+explicit in the test, matching the catchall only with the message expectation.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">describe</span> <span class="s1">&#39;Coffee time!&#39;</span> <span class="k">do</span>
+</span><span class='line'>  <span class="n">it</span> <span class="s1">&#39;drinks the coffee&#39;</span> <span class="k">do</span>
+</span><span class='line'>    <span class="n">thing</span> <span class="o">=</span> <span class="n">double</span><span class="p">(</span><span class="s1">&#39;Thing&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">as_null_object</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">expect</span><span class="p">(</span><span class="n">thing</span><span class="p">)</span><span class="o">.</span><span class="n">to</span> <span class="n">receive</span><span class="p">(</span><span class="ss">:do</span><span class="p">)</span><span class="o">.</span><span class="n">with</span><span class="p">(</span><span class="ss">:drink_coffee</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">do_stuff</span> <span class="n">thing</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Stay tuned for <a href="http://myronmars.to/n/dev-blog/2013/07/the-plan-for-rspec-3">RSpec3</a>
+when <code>as_null_object</code> doubles will be smart enough to only stub matching
+messages.  Or check out one of the many plugins:
+<a href="https://github.com/xaviershay/rspec-fire"><code>rspec-fire</code></a>,
+<a href="https://github.com/psyho/bogus"><code>bogus</code></a>, and
+<a href="https://github.com/ryanong/spy"><code>spy</code></a>.</p>
+</div>
+
+<div class="meta">
+	
+</div>
+</article>
+
+	<div class="share">
+	<div class="addthis_toolbox addthis_default_style ">
+	
+	
+	<a class="addthis_button_tweet"></a>
+	
+	
+	<a class="addthis_counter addthis_pill_style"></a>
+	</div>
+  <script type="text/javascript" src="http://s7.addthis.com/js/250/addthis_widget.js#pubid="></script>
+</div>
+
+
+
+    </div>
+    <footer id="footer">
+    <div style="display:inline">
+  <p>
+    Copyright &copy; 2013
+
+    Aaron Kromer
+.
+    All content on this site is available under a <a href="http://creativecommons.org/publicdomain/zero/1.0/">CC0 license</a>.
+  </p>
+  <p>
+    Powered by <a href="http://octopress.org">Octopress</a> |
+    Theme <a href="http://github.com/panks/fabric">fabric</a> by <a href="http://panks.me">Pankaj Kumar</a>
+  </p>
+</div>
+
+
+    </footer>
+    <script src="/javascripts/fabric.js"></script>
+<script src="/javascripts/jquery.fancybox.pack.js"></script>
+<script type="text/javascript">
+(function($){
+	$('.fancybox').fancybox();
+})(jQuery);
+</script> <!-- Delete or comment this line to disable Fancybox -->
+
+
+
+
+
+
+<!-- end toload --> 
+</div>
+</div>
+<script src="/javascripts/jquery.ui.totop.js" type="text/javascript"></script>
+<script type="text/javascript">
+/*<![CDATA[*/
+;(function($){$().UItoTop({easingType:'easeOutCirc'});})(jQuery); 
+/*]]>*/
+</script><!-- remove it to remove the scroll to top button -->
+</body>
+</html>

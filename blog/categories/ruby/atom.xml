@@ -4,7 +4,7 @@
   <title><![CDATA[Category: ruby | Aaron Kromer's Blog]]></title>
   <link href="http://cupakromer.github.com/blog/categories/ruby/atom.xml" rel="self"/>
   <link href="http://cupakromer.github.com/"/>
-  <updated>2013-07-14T17:48:04-04:00</updated>
+  <updated>2013-07-17T11:58:03-04:00</updated>
   <id>http://cupakromer.github.com/</id>
   <author>
     <name><![CDATA[Aaron Kromer]]></name>
@@ -12,6 +12,101 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Monitoring Specific Messages in RSpec]]></title>
+    <link href="http://cupakromer.github.com/blog/2013-07-17-monitoring-specific-messages-in-rspec.html"/>
+    <updated>2013-07-17T11:34:00-04:00</updated>
+    <id>http://cupakromer.github.com/blog/monitoring-specific-messages-in-rspec</id>
+    <content type="html"><![CDATA[<p>A common question I see asked in the #rspec IRC channel is:</p>
+
+<blockquote><p>How do I verify only a specific message is received?</p></blockquote>
+
+<p>The context of this question is usually a method that sends the same message
+multiple time, but with different arguments.</p>
+
+<p>Take the following contrived example:</p>
+
+<p>```ruby
+def do_stuff(thing)
+  thing.do :having_fun
+  thing.do :drink_coffee
+  thing.do :code
+end</p>
+
+<p>describe 'Coffee time!' do
+  it 'drinks the coffee' do</p>
+
+<pre><code>thing = double('Thing')
+
+expect(thing).to receive(:do).with(:drink_coffee)
+
+do_stuff thing
+</code></pre>
+
+<p>  end
+end
+```</p>
+
+<p>Alas, it fails:</p>
+
+<p>```text
+Double "Thing" received :do with unexpected arguments</p>
+
+<pre><code>     expected: (:drink_coffee)
+          got: (:having_fun)
+</code></pre>
+
+<p>```</p>
+
+<p>The solution is to add a generic stub (a catchall) for the desired message:</p>
+
+<p>```ruby
+describe 'Coffee time!' do
+  it 'drinks the coffee' do</p>
+
+<pre><code>thing = double('Thing')
+
+allow(thing).to receive(:do)
+expect(thing).to receive(:do).with(:drink_coffee)
+
+do_stuff thing
+</code></pre>
+
+<p>  end
+end
+```</p>
+
+<p>There is another solution which can also be used:
+<a href="https://www.relishapp.com/rspec/rspec-mocks/v/2-14/docs/method-stubs/as-null-object"><code>as_null_object</code></a>.</p>
+
+<p>The issue with <code>as_null_object</code> is that it will happily hum along even for
+invalid and unexpected messages. The double stub pattern above is
+explicit in the test, matching the catchall only with the message expectation.</p>
+
+<p>```ruby
+describe 'Coffee time!' do
+  it 'drinks the coffee' do</p>
+
+<pre><code>thing = double('Thing').as_null_object
+
+expect(thing).to receive(:do).with(:drink_coffee)
+
+do_stuff thing
+</code></pre>
+
+<p>  end
+end
+```</p>
+
+<p>Stay tuned for <a href="http://myronmars.to/n/dev-blog/2013/07/the-plan-for-rspec-3">RSpec3</a>
+when <code>as_null_object</code> doubles will be smart enough to only stub matching
+messages.  Or check out one of the many plugins:
+<a href="https://github.com/xaviershay/rspec-fire"><code>rspec-fire</code></a>,
+<a href="https://github.com/psyho/bogus"><code>bogus</code></a>, and
+<a href="https://github.com/ryanong/spy"><code>spy</code></a>.</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Testing Scripts with Load]]></title>
@@ -956,86 +1051,6 @@ simple.</p>
 <a href="http://gist.github.com/4247624">http://gist.github.com/4247624</a></p>
 
 <p>Stay tuned for more on RSpec in the future.</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[=== the Forgotten Equality]]></title>
-    <link href="http://cupakromer.github.com/blog/2012-10-12-equals-equals-equals-the-forgotten-equality.html"/>
-    <updated>2012-10-12T19:04:00-04:00</updated>
-    <id>http://cupakromer.github.com/blog/equals-equals-equals-the-forgotten-equality</id>
-    <content type="html"><![CDATA[<p>Recently I was looking for a way to do a comparison on a <code>String</code> with
-either another <code>String</code> or a <code>Regexp</code>. Most of the discussions on equality
-focused on <code>==</code>, <code>eql?</code>, <code>equal?</code>. None of which would satisfy the requirement.
-So I was left with this code:</p>
-
-<p>```ruby
-def matches(compare_with)
-  if compare_with.is_a?(Regexp)</p>
-
-<pre><code>@data_string =~ compare_with
-</code></pre>
-
-<p>  else</p>
-
-<pre><code>@data_string == compare_with
-</code></pre>
-
-<p>  end
-end
-```</p>
-
-<p>I was less than thrilled. So I did what everyone does, I asked the internet.
-Thanks to Twitter, specifically James Edward Gray II
-<a href="https://twitter.com/jeg2">@JEG2</a> who btw completely rocks, I was pointed at
-<code>===</code>. Though the documentation on <code>===</code> leaves something to be desired:</p>
-
-<p>  <blockquote><p>Used to compare each of the items with the target in the <code>when</code> clause of<br/>  a <code>case</code> statement.</p><footer><strong>Dave Thomas, Programming Ruby 1.9, page 128</strong> <cite><a href='http://pragprog.com/book/ruby/programming-ruby'>pragprog.com/book/ruby/&hellip;</a></cite></footer></blockquote></p>
-
-<ul>
-<li>The <a href="http://ruby-doc.org/core-1.9.3/String.html#method-i-3D-3D-3D">String API</a>
-sneakily directs you to <code>==</code> but doesn't outright state they are the same</li>
-<li>The <a href="http://ruby-doc.org/core-1.9.3/Regexp.html#method-i-3D-3D-3D">Regexp API</a>
-states it as a synonym for <a href="http://ruby-doc.org/core-1.9.3/Regexp.html#method-i-3D-7E"><code>Regexp#=~</code></a></li>
-</ul>
-
-
-<p>The thing to remember is with <code>case</code> when you have the following:</p>
-
-<p><code>ruby
-case thing
-when other_thing
-  # stuff
-end
-</code></p>
-
-<p>You are just saying <code>other_thing === thing</code>. The comparison is performed with
-the <code>when</code> expression as the lvalue.</p>
-
-<p>This means I could rewrite the <code>matches</code> method as:</p>
-
-<p><code>ruby
-def matches(compare_with)
-  compare_with === @data_string
-end
-</code></p>
-
-<p>This also means it's possible to be more flexible on the match:</p>
-
-<p>```ruby</p>
-
-<h1>@data_string = "coding for fun"</h1>
-
-<p>matches "oding"           # false
-matches "coding for fun"  # true
-matches /oding/           # true
-matches String            # true
-```</p>
-
-<p>So, the next time you're thinking of writing some code that needs to
-change based on class type or how something compares with something else, think
-if a <code>case</code> statement applies. If it does, see if <code>===</code> works to produce better
-code.</p>
 ]]></content>
   </entry>
   

@@ -4,7 +4,7 @@
   <title><![CDATA[Aaron Kromer's Blog]]></title>
   <link href="http://cupakromer.github.com/atom.xml" rel="self"/>
   <link href="http://cupakromer.github.com/"/>
-  <updated>2013-07-14T17:48:04-04:00</updated>
+  <updated>2013-07-17T11:58:03-04:00</updated>
   <id>http://cupakromer.github.com/</id>
   <author>
     <name><![CDATA[Aaron Kromer]]></name>
@@ -12,6 +12,126 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Monitoring Specific Messages in RSpec]]></title>
+    <link href="http://cupakromer.github.com/blog/2013-07-17-monitoring-specific-messages-in-rspec.html"/>
+    <updated>2013-07-17T11:34:00-04:00</updated>
+    <id>http://cupakromer.github.com/blog/monitoring-specific-messages-in-rspec</id>
+    <content type="html"><![CDATA[<p>A common question I see asked in the #rspec IRC channel is:</p>
+
+<blockquote><p>How do I verify only a specific message is received?</p></blockquote>
+
+<p>The context of this question is usually a method that sends the same message
+multiple time, but with different arguments.</p>
+
+<p>Take the following contrived example:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">def</span> <span class="nf">do_stuff</span><span class="p">(</span><span class="n">thing</span><span class="p">)</span>
+</span><span class='line'>  <span class="n">thing</span><span class="o">.</span><span class="n">do</span> <span class="ss">:having_fun</span>
+</span><span class='line'>  <span class="n">thing</span><span class="o">.</span><span class="n">do</span> <span class="ss">:drink_coffee</span>
+</span><span class='line'>  <span class="n">thing</span><span class="o">.</span><span class="n">do</span> <span class="ss">:code</span>
+</span><span class='line'><span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">describe</span> <span class="s1">&#39;Coffee time!&#39;</span> <span class="k">do</span>
+</span><span class='line'>  <span class="n">it</span> <span class="s1">&#39;drinks the coffee&#39;</span> <span class="k">do</span>
+</span><span class='line'>    <span class="n">thing</span> <span class="o">=</span> <span class="n">double</span><span class="p">(</span><span class="s1">&#39;Thing&#39;</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">expect</span><span class="p">(</span><span class="n">thing</span><span class="p">)</span><span class="o">.</span><span class="n">to</span> <span class="n">receive</span><span class="p">(</span><span class="ss">:do</span><span class="p">)</span><span class="o">.</span><span class="n">with</span><span class="p">(</span><span class="ss">:drink_coffee</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">do_stuff</span> <span class="n">thing</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Alas, it fails:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='text'><span class='line'>Double &quot;Thing&quot; received :do with unexpected arguments
+</span><span class='line'>         expected: (:drink_coffee)
+</span><span class='line'>              got: (:having_fun)
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The solution is to add a generic stub (a catchall) for the desired message:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">describe</span> <span class="s1">&#39;Coffee time!&#39;</span> <span class="k">do</span>
+</span><span class='line'>  <span class="n">it</span> <span class="s1">&#39;drinks the coffee&#39;</span> <span class="k">do</span>
+</span><span class='line'>    <span class="n">thing</span> <span class="o">=</span> <span class="n">double</span><span class="p">(</span><span class="s1">&#39;Thing&#39;</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">allow</span><span class="p">(</span><span class="n">thing</span><span class="p">)</span><span class="o">.</span><span class="n">to</span> <span class="n">receive</span><span class="p">(</span><span class="ss">:do</span><span class="p">)</span>
+</span><span class='line'>    <span class="n">expect</span><span class="p">(</span><span class="n">thing</span><span class="p">)</span><span class="o">.</span><span class="n">to</span> <span class="n">receive</span><span class="p">(</span><span class="ss">:do</span><span class="p">)</span><span class="o">.</span><span class="n">with</span><span class="p">(</span><span class="ss">:drink_coffee</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">do_stuff</span> <span class="n">thing</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>There is another solution which can also be used:
+<a href="https://www.relishapp.com/rspec/rspec-mocks/v/2-14/docs/method-stubs/as-null-object"><code>as_null_object</code></a>.</p>
+
+<p>The issue with <code>as_null_object</code> is that it will happily hum along even for
+invalid and unexpected messages. The double stub pattern above is
+explicit in the test, matching the catchall only with the message expectation.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">describe</span> <span class="s1">&#39;Coffee time!&#39;</span> <span class="k">do</span>
+</span><span class='line'>  <span class="n">it</span> <span class="s1">&#39;drinks the coffee&#39;</span> <span class="k">do</span>
+</span><span class='line'>    <span class="n">thing</span> <span class="o">=</span> <span class="n">double</span><span class="p">(</span><span class="s1">&#39;Thing&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">as_null_object</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">expect</span><span class="p">(</span><span class="n">thing</span><span class="p">)</span><span class="o">.</span><span class="n">to</span> <span class="n">receive</span><span class="p">(</span><span class="ss">:do</span><span class="p">)</span><span class="o">.</span><span class="n">with</span><span class="p">(</span><span class="ss">:drink_coffee</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">do_stuff</span> <span class="n">thing</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Stay tuned for <a href="http://myronmars.to/n/dev-blog/2013/07/the-plan-for-rspec-3">RSpec3</a>
+when <code>as_null_object</code> doubles will be smart enough to only stub matching
+messages.  Or check out one of the many plugins:
+<a href="https://github.com/xaviershay/rspec-fire"><code>rspec-fire</code></a>,
+<a href="https://github.com/psyho/bogus"><code>bogus</code></a>, and
+<a href="https://github.com/ryanong/spy"><code>spy</code></a>.</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Testing Scripts with Load]]></title>
