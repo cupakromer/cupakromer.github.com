@@ -112,8 +112,8 @@ article{
     }
 
     blockquote{
-      background: $color-gray04;
-      border-left: 5px solid $color-gray03;
+      background: rgba($color-gray04, 0.5);
+      border-left: 5px solid rgba($color-gray03, 0.6);
       padding: 15px 20px;
       margin-top: 10px;
       & > p:first-of-type{
