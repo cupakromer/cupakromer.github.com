@@ -4,7 +4,7 @@
   <title><![CDATA[Aaron Kromer's Blog]]></title>
   <link href="http://cupakromer.github.com/atom.xml" rel="self"/>
   <link href="http://cupakromer.github.com/"/>
-  <updated>2013-07-26T10:29:42-04:00</updated>
+  <updated>2013-07-26T18:02:14-04:00</updated>
   <id>http://cupakromer.github.com/</id>
   <author>
     <name><![CDATA[Aaron Kromer]]></name>
@@ -20,8 +20,8 @@
     <id>http://cupakromer.github.com/blog/monitoring-specific-messages-in-rspec-part-3</id>
     <content type="html"><![CDATA[<p>Continuing the series (
 <a href="http://aaronkromer.com/blog/2013-07-17-monitoring-specific-messages-in-rspec.html">part 1</a>,
-<a href="http://aaronkromer.com/blog/2013-07-24-monitoring-specific-messages-in-rspec-part-2.html">part 2</a>)
-on matching messages in RSpec, the next logical step is custom argument
+<a href="http://aaronkromer.com/blog/2013-07-24-monitoring-specific-messages-in-rspec-part-2.html">part 2</a>
+) on matching messages in RSpec, the next logical step is custom argument
 matchers.</p>
 
 <figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
@@ -48,9 +48,9 @@ this could simply look like:</p>
 <p>That&#8217;s all there is to it. Now it can be used as both a regular matcher and as
 an argument matcher.</p>
 
-<p>If instead, the matcher should be created from
+<p>If the matcher needs to be created from
 <a href="http://rubydoc.info/gems/rspec-expectations/RSpec/Matchers">scratch</a>, a
-<code>matches?</code> method needs to be defined instead:</p>
+<code>matches?</code> method must be defined instead:</p>
 
 <figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
 <span class='line-number'>2</span>
@@ -78,11 +78,13 @@ matcher, it will always fail. The reason is that argument matchers are invoked
 with the <code>==</code> operator, which by <a href="http://ruby-doc.org/core-2.0/BasicObject.html#method-i-3D-3D">default</a>,
 verifies if the objects are the same object.</p>
 
-<p><a href="https://github.com/rspec/rspec-expectations/issues/276">Oddly</a>, attempting to
-use a normal matcher with the <a href="https://www.relishapp.com/rspec/rspec-expectations/v/2-14/docs/built-in-matchers/expect-change"><code>change</code></a>
-expectation fails, due to <code>change</code> invoking the
+<p>Attempting to use a normal matcher with the
+<a href="https://www.relishapp.com/rspec/rspec-expectations/v/2-14/docs/built-in-matchers/expect-change"><code>change</code></a>
+expectation also
+<a href="https://github.com/rspec/rspec-expectations/issues/276">oddly</a> fails, due to
+<code>change</code> invoking the
 <a href="http://aaronkromer.com/blog/2012-10-12-equals-equals-equals-the-forgotten-equality.html"><code>===</code></a>
-message, not <code>matches?</code>. The <a href="http://ruby-doc.org/core-2.0/Object.html#method-i-3D-3D-3D">default <code>===</code> behavior is
+message, not <code>matches?</code>. Though the <a href="http://ruby-doc.org/core-2.0/Object.html#method-i-3D-3D-3D">default <code>===</code> behavior is
 <code>==</code></a>, so this
 currently works with the existing argument matchers.</p>
 
@@ -92,7 +94,7 @@ standardize the matchers to <code>===</code>. This will allow for a more consist
 composable interface. It also has the added benefit of allowing the matchers to
 be used in more complex conditionals using <code>case</code> statements.</p>
 
-<p>The fix for the made from scratch matcher is simple:</p>
+<p>To fix the class based matcher simply add the necessary alias(es):</p>
 
 <figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
 <span class='line-number'>2</span>
@@ -111,8 +113,8 @@ be used in more complex conditionals using <code>case</code> statements.</p>
 </span></code></pre></td></tr></table></div></figure>
 
 
-<p>Also, with such a simple matcher, there is no reason it cannot be created as a
-simple method alias on an existing matcher:</p>
+<p>Note that with such a simple matcher, there is no reason it cannot be created
+as a simple composed method using an existing matcher:</p>
 
 <figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
 <span class='line-number'>2</span>
