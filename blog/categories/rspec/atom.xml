@@ -4,7 +4,7 @@
   <title><![CDATA[Category: rspec | Aaron Kromer's Blog]]></title>
   <link href="http://cupakromer.github.com/blog/categories/rspec/atom.xml" rel="self"/>
   <link href="http://cupakromer.github.com/"/>
-  <updated>2013-07-26T18:33:01-04:00</updated>
+  <updated>2013-07-26T18:34:15-04:00</updated>
   <id>http://cupakromer.github.com/</id>
   <author>
     <name><![CDATA[Aaron Kromer]]></name>
@@ -75,9 +75,9 @@ expectation also
 <a href="https://github.com/rspec/rspec-expectations/issues/276">oddly</a> fails, due to
 <code>change</code> invoking the
 <a href="http://aaronkromer.com/blog/2012-10-12-equals-equals-equals-the-forgotten-equality.html"><code>===</code></a>
-message, not <code>matches?</code>. Though the <a href="http://ruby-doc.org/core-2.0/Object.html#method-i-3D-3D-3D">default <code>===</code> behavior is
-<code>==</code></a>, so this
-currently works with the existing argument matchers.</p>
+message, not <code>matches?</code>. Since the <a href="http://ruby-doc.org/core-2.0/Object.html#method-i-3D-3D-3D">default <code>===</code> behavior is
+<code>==</code></a>, the existing
+argument matchers currently work with it.</p>
 
 <p>There is active talk / changes
 <a href="https://github.com/rspec/rspec-expectations/issues/280">happening</a> to
