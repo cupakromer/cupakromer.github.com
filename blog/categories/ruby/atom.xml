@@ -4,7 +4,7 @@
   <title><![CDATA[Category: ruby | Aaron Kromer's Blog]]></title>
   <link href="http://cupakromer.github.com/blog/categories/ruby/atom.xml" rel="self"/>
   <link href="http://cupakromer.github.com/"/>
-  <updated>2013-07-24T11:00:34-04:00</updated>
+  <updated>2013-07-26T10:29:42-04:00</updated>
   <id>http://cupakromer.github.com/</id>
   <author>
     <name><![CDATA[Aaron Kromer]]></name>
@@ -12,6 +12,102 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Monitoring Specific Messages in RSpec Part 3]]></title>
+    <link href="http://cupakromer.github.com/blog/2013-07-26-monitoring-specific-messages-in-rspec-part-3.html"/>
+    <updated>2013-07-26T10:13:00-04:00</updated>
+    <id>http://cupakromer.github.com/blog/monitoring-specific-messages-in-rspec-part-3</id>
+    <content type="html"><![CDATA[<p>Continuing the series (
+<a href="http://aaronkromer.com/blog/2013-07-17-monitoring-specific-messages-in-rspec.html">part 1</a>,
+<a href="http://aaronkromer.com/blog/2013-07-24-monitoring-specific-messages-in-rspec-part-2.html">part 2</a>)
+on matching messages in RSpec, the next logical step is custom argument
+matchers.</p>
+
+<p><code>ruby
+expect(mechanic).to receive(:fix).with something_broken
+</code></p>
+
+<p>Using the RSpec <a href="https://www.relishapp.com/rspec/rspec-expectations/v/2-14/docs/custom-matchers">matcher DSL</a>
+this could simply look like:</p>
+
+<p>```ruby
+RSpec::Matchers.define :something_broken do
+  match do |thing|</p>
+
+<pre><code>thing.broken?
+</code></pre>
+
+<p>  end
+end
+```</p>
+
+<p>That's all there is to it. Now it can be used as both a regular matcher and as
+an argument matcher.</p>
+
+<p>If instead, the matcher should be created from
+<a href="http://rubydoc.info/gems/rspec-expectations/RSpec/Matchers">scratch</a>, a
+<code>matches?</code> method needs to be defined instead:</p>
+
+<p>```ruby
+class SomethingBroken
+  def matches?(target)</p>
+
+<pre><code>target.broken?
+</code></pre>
+
+<p>  end
+end</p>
+
+<p>def something_broken
+  SomethingBroken.new
+end
+```</p>
+
+<p>This works just fine as a normal matcher, however, when used as an argument
+matcher, it will always fail. The reason is that argument matchers are invoked
+with the <code>==</code> operator, which by <a href="http://ruby-doc.org/core-2.0/BasicObject.html#method-i-3D-3D">default</a>,
+verifies if the objects are the same object.</p>
+
+<p><a href="https://github.com/rspec/rspec-expectations/issues/276">Oddly</a>, attempting to
+use a normal matcher with the <a href="https://www.relishapp.com/rspec/rspec-expectations/v/2-14/docs/built-in-matchers/expect-change"><code>change</code></a>
+expectation fails, due to <code>change</code> invoking the
+<a href="http://aaronkromer.com/blog/2012-10-12-equals-equals-equals-the-forgotten-equality.html"><code>===</code></a>
+message, not <code>matches?</code>. The <a href="http://ruby-doc.org/core-2.0/Object.html#method-i-3D-3D-3D">default <code>===</code> behavior is
+<code>==</code></a>, so this
+currently works with the existing argument matchers.</p>
+
+<p>There is active talk / changes
+<a href="https://github.com/rspec/rspec-expectations/issues/280">happening</a> to
+standardize the matchers to <code>===</code>. This will allow for a more consistent and
+composable interface. It also has the added benefit of allowing the matchers to
+be used in more complex conditionals using <code>case</code> statements.</p>
+
+<p>The fix for the made from scratch matcher is simple:</p>
+
+<p>```ruby
+class SomethingBroken
+  def matches?(target)</p>
+
+<pre><code>target.broken?
+</code></pre>
+
+<p>  end
+  alias_method :==, :matches?
+  alias_method :===, :matches?  # Not technically necessary due to default ==
+end
+```</p>
+
+<p>Also, with such a simple matcher, there is no reason it cannot be created as a
+simple method alias on an existing matcher:</p>
+
+<p><code>ruby
+def something_broken
+  be_broken   # Note: Not all built in matchers have == aliases yet
+end
+</code></p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Monitoring Specific Messages in RSpec Part 2]]></title>
@@ -743,88 +839,6 @@ just add it. I also wanted to be able to include any changes easily. Thus, I've
 rolled it all up into a gem: <a href="http://rubygems.org/gems/conjurer"><code>conjurer</code></a></p>
 
 <p><strong>Happy RSpecing!!</strong></p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Quirky Privates]]></title>
-    <link href="http://cupakromer.github.com/blog/2013-01-07-quirky-privates.html"/>
-    <updated>2013-01-07T20:35:00-05:00</updated>
-    <id>http://cupakromer.github.com/blog/quirky-privates</id>
-    <content type="html"><![CDATA[<p>Just one of those little Ruby language quirks. Normally, you have to use
-the implicit receiver when sending a <code>private</code> message. This can be
-demonstrated as follows:</p>
-
-<p>```ruby
-class Quirky
-  def send_private_explicitly</p>
-
-<pre><code>self.say_hello    # =&gt; NoMethodError: private method 'say_hello'
-</code></pre>
-
-<p>  end</p>
-
-<p>  def send_private_implicitly</p>
-
-<pre><code>say_hello         # =&gt; "Hi there friend!"
-</code></pre>
-
-<p>  end</p>
-
-<p>  private</p>
-
-<p>  def say_hello</p>
-
-<pre><code>puts "Hi there friend!"
-</code></pre>
-
-<p>  end
-end
-```</p>
-
-<p>However, this is not true when sending a message that ends in <code>=</code>. In
-this case you <em>must</em> use the explicit receiver <code>self</code>.</p>
-
-<p>```ruby
-class Quirky
-  def send_private_setter_explicitly</p>
-
-<pre><code>self.store_value = 'friend'     # =&gt; @private_value='friend'
-store_value                     # =&gt; "Let's get our private value"
-</code></pre>
-
-<p>  end</p>
-
-<p>  def send_private_setter_implicitly</p>
-
-<pre><code>store_value = 'friend'          # =&gt; @private_value is not set
-store_value                     # =&gt; 'friend'
-</code></pre>
-
-<p>  end</p>
-
-<p>  private</p>
-
-<p>  def store_value=(value)</p>
-
-<pre><code>@private_value = value
-</code></pre>
-
-<p>  end</p>
-
-<p>  def store_value</p>
-
-<pre><code>puts "Let's get our private value"
-</code></pre>
-
-<p>  end
-end
-```</p>
-
-<p>In fact, without the explicit reciever <code>self</code> when sending a private
-message ending in <code>=</code>, you will instead create a local variable with
-that name. This is then the reference point for the rest of the method
-body.</p>
 ]]></content>
   </entry>
   

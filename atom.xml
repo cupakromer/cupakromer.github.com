@@ -4,7 +4,7 @@
   <title><![CDATA[Aaron Kromer's Blog]]></title>
   <link href="http://cupakromer.github.com/atom.xml" rel="self"/>
   <link href="http://cupakromer.github.com/"/>
-  <updated>2013-07-24T11:00:34-04:00</updated>
+  <updated>2013-07-26T10:29:42-04:00</updated>
   <id>http://cupakromer.github.com/</id>
   <author>
     <name><![CDATA[Aaron Kromer]]></name>
@@ -12,6 +12,118 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Monitoring Specific Messages in RSpec Part 3]]></title>
+    <link href="http://cupakromer.github.com/blog/2013-07-26-monitoring-specific-messages-in-rspec-part-3.html"/>
+    <updated>2013-07-26T10:13:00-04:00</updated>
+    <id>http://cupakromer.github.com/blog/monitoring-specific-messages-in-rspec-part-3</id>
+    <content type="html"><![CDATA[<p>Continuing the series (
+<a href="http://aaronkromer.com/blog/2013-07-17-monitoring-specific-messages-in-rspec.html">part 1</a>,
+<a href="http://aaronkromer.com/blog/2013-07-24-monitoring-specific-messages-in-rspec-part-2.html">part 2</a>)
+on matching messages in RSpec, the next logical step is custom argument
+matchers.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">expect</span><span class="p">(</span><span class="n">mechanic</span><span class="p">)</span><span class="o">.</span><span class="n">to</span> <span class="n">receive</span><span class="p">(</span><span class="ss">:fix</span><span class="p">)</span><span class="o">.</span><span class="n">with</span> <span class="n">something_broken</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Using the RSpec <a href="https://www.relishapp.com/rspec/rspec-expectations/v/2-14/docs/custom-matchers">matcher DSL</a>
+this could simply look like:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="ss">RSpec</span><span class="p">:</span><span class="ss">:Matchers</span><span class="o">.</span><span class="n">define</span> <span class="ss">:something_broken</span> <span class="k">do</span>
+</span><span class='line'>  <span class="n">match</span> <span class="k">do</span> <span class="o">|</span><span class="n">thing</span><span class="o">|</span>
+</span><span class='line'>    <span class="n">thing</span><span class="o">.</span><span class="n">broken?</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>That&#8217;s all there is to it. Now it can be used as both a regular matcher and as
+an argument matcher.</p>
+
+<p>If instead, the matcher should be created from
+<a href="http://rubydoc.info/gems/rspec-expectations/RSpec/Matchers">scratch</a>, a
+<code>matches?</code> method needs to be defined instead:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">SomethingBroken</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">matches?</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
+</span><span class='line'>    <span class="n">target</span><span class="o">.</span><span class="n">broken?</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">def</span> <span class="nf">something_broken</span>
+</span><span class='line'>  <span class="no">SomethingBroken</span><span class="o">.</span><span class="n">new</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>This works just fine as a normal matcher, however, when used as an argument
+matcher, it will always fail. The reason is that argument matchers are invoked
+with the <code>==</code> operator, which by <a href="http://ruby-doc.org/core-2.0/BasicObject.html#method-i-3D-3D">default</a>,
+verifies if the objects are the same object.</p>
+
+<p><a href="https://github.com/rspec/rspec-expectations/issues/276">Oddly</a>, attempting to
+use a normal matcher with the <a href="https://www.relishapp.com/rspec/rspec-expectations/v/2-14/docs/built-in-matchers/expect-change"><code>change</code></a>
+expectation fails, due to <code>change</code> invoking the
+<a href="http://aaronkromer.com/blog/2012-10-12-equals-equals-equals-the-forgotten-equality.html"><code>===</code></a>
+message, not <code>matches?</code>. The <a href="http://ruby-doc.org/core-2.0/Object.html#method-i-3D-3D-3D">default <code>===</code> behavior is
+<code>==</code></a>, so this
+currently works with the existing argument matchers.</p>
+
+<p>There is active talk / changes
+<a href="https://github.com/rspec/rspec-expectations/issues/280">happening</a> to
+standardize the matchers to <code>===</code>. This will allow for a more consistent and
+composable interface. It also has the added benefit of allowing the matchers to
+be used in more complex conditionals using <code>case</code> statements.</p>
+
+<p>The fix for the made from scratch matcher is simple:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">SomethingBroken</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">matches?</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
+</span><span class='line'>    <span class="n">target</span><span class="o">.</span><span class="n">broken?</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>  <span class="n">alias_method</span> <span class="ss">:==</span><span class="p">,</span> <span class="ss">:matches?</span>
+</span><span class='line'>  <span class="n">alias_method</span> <span class="ss">:===</span><span class="p">,</span> <span class="ss">:matches?</span>  <span class="c1"># Not technically necessary due to default ==</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Also, with such a simple matcher, there is no reason it cannot be created as a
+simple method alias on an existing matcher:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">def</span> <span class="nf">something_broken</span>
+</span><span class='line'>  <span class="n">be_broken</span>   <span class="c1"># Note: Not all built in matchers have == aliases yet</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Monitoring Specific Messages in RSpec Part 2]]></title>
