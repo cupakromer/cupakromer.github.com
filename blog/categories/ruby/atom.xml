@@ -4,7 +4,7 @@
   <title><![CDATA[Category: ruby | Aaron Kromer's Blog]]></title>
   <link href="http://cupakromer.github.com/blog/categories/ruby/atom.xml" rel="self"/>
   <link href="http://cupakromer.github.com/"/>
-  <updated>2013-07-26T18:34:15-04:00</updated>
+  <updated>2013-07-28T14:49:05-04:00</updated>
   <id>http://cupakromer.github.com/</id>
   <author>
     <name><![CDATA[Aaron Kromer]]></name>
@@ -121,32 +121,15 @@ message expectations. While that technique is useful for a vast majority of
 use cases, sometimes you need a bit more complexity.</p>
 
 <p>Say for example, the desire is to verify the state of the provided parameter.
-As in this very contrived example:</p>
+As in this very contrived example (<em>Update: 2013-07-28 Paired down example to
+only show test and not implementation</em>):</p>
 
 <p>```ruby
-class Factory
-  def perform_maintenance</p>
-
-<pre><code>widgets.select{ |widget| widget.broken? }
-       .each{ |widget| mechanic.fix widget }
-# Other stuff
-</code></pre>
-
-<p>  end
-end</p>
-
-<p>describe Factory do
+describe Factory do
   context 'making sure current stock is ready' do</p>
 
 <pre><code>it 'only fixes broken widgets' do
-  mechanic = double('Mechanic')
-  factory = Factory.new(
-    widgets: [
-      double('Widget', broken?: true),
-      double('Widget', broken?: false),
-    ],
-    mechanic: mechanic
-  )
+  # Setup code
 
   states = []
   expect(mechanic).to receive(:fix) do |widget|
@@ -162,10 +145,10 @@ end
 ```</p>
 
 <p>This leverages the <a href="https://www.relishapp.com/rspec/rspec-mocks/v/2-14/docs/method-stubs/stub-with-substitute-implementation">stub with substitute implementation</a>
-provided by RSpec mocks. This can also be used with <code>allow</code>.</p>
+provided by RSpec mocks. It can also be used with the <code>allow</code> syntax.</p>
 
 <p>While the above version has it's uses, it tends to hide some of the intent in
-the closure manipulation. A slightly more expressive method is to just add
+the closure manipulation. A slightly more expressive method is just to add
 the state expectation in the block:</p>
 
 <p><code>ruby
@@ -174,7 +157,7 @@ expect(mechanic).to receive(:fix) do |widget|
 end
 </code></p>
 
-<p>These techniques are great for setting up generic message stubs which require
+<p>This last technique is great for setting up generic message stubs which require
 that something with specific state is provided. By adding it to a generic
 <code>allow</code>, it ensures when the contract is broken anywhere in the code under test,
 the test will properly fail.</p>

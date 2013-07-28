@@ -4,7 +4,7 @@
   <title><![CDATA[Aaron Kromer's Blog]]></title>
   <link href="http://cupakromer.github.com/atom.xml" rel="self"/>
   <link href="http://cupakromer.github.com/"/>
-  <updated>2013-07-26T18:34:15-04:00</updated>
+  <updated>2013-07-28T14:49:05-04:00</updated>
   <id>http://cupakromer.github.com/</id>
   <author>
     <name><![CDATA[Aaron Kromer]]></name>
@@ -137,7 +137,8 @@ message expectations. While that technique is useful for a vast majority of
 use cases, sometimes you need a bit more complexity.</p>
 
 <p>Say for example, the desire is to verify the state of the provided parameter.
-As in this very contrived example:</p>
+As in this very contrived example (<em>Update: 2013-07-28 Paired down example to
+only show test and not implementation</em>):</p>
 
 <figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
 <span class='line-number'>2</span>
@@ -153,40 +154,10 @@ As in this very contrived example:</p>
 <span class='line-number'>12</span>
 <span class='line-number'>13</span>
 <span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-<span class='line-number'>21</span>
-<span class='line-number'>22</span>
-<span class='line-number'>23</span>
-<span class='line-number'>24</span>
-<span class='line-number'>25</span>
-<span class='line-number'>26</span>
-<span class='line-number'>27</span>
-<span class='line-number'>28</span>
-<span class='line-number'>29</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Factory</span>
-</span><span class='line'>  <span class="k">def</span> <span class="nf">perform_maintenance</span>
-</span><span class='line'>    <span class="n">widgets</span><span class="o">.</span><span class="n">select</span><span class="p">{</span> <span class="o">|</span><span class="n">widget</span><span class="o">|</span> <span class="n">widget</span><span class="o">.</span><span class="n">broken?</span> <span class="p">}</span>
-</span><span class='line'>           <span class="o">.</span><span class="n">each</span><span class="p">{</span> <span class="o">|</span><span class="n">widget</span><span class="o">|</span> <span class="n">mechanic</span><span class="o">.</span><span class="n">fix</span> <span class="n">widget</span> <span class="p">}</span>
-</span><span class='line'>    <span class="c1"># Other stuff</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span><span class='line'>
-</span><span class='line'><span class="n">describe</span> <span class="no">Factory</span> <span class="k">do</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">describe</span> <span class="no">Factory</span> <span class="k">do</span>
 </span><span class='line'>  <span class="n">context</span> <span class="s1">&#39;making sure current stock is ready&#39;</span> <span class="k">do</span>
 </span><span class='line'>    <span class="n">it</span> <span class="s1">&#39;only fixes broken widgets&#39;</span> <span class="k">do</span>
-</span><span class='line'>      <span class="n">mechanic</span> <span class="o">=</span> <span class="n">double</span><span class="p">(</span><span class="s1">&#39;Mechanic&#39;</span><span class="p">)</span>
-</span><span class='line'>      <span class="n">factory</span> <span class="o">=</span> <span class="no">Factory</span><span class="o">.</span><span class="n">new</span><span class="p">(</span>
-</span><span class='line'>        <span class="ss">widgets</span><span class="p">:</span> <span class="o">[</span>
-</span><span class='line'>          <span class="n">double</span><span class="p">(</span><span class="s1">&#39;Widget&#39;</span><span class="p">,</span> <span class="n">broken?</span><span class="p">:</span> <span class="kp">true</span><span class="p">),</span>
-</span><span class='line'>          <span class="n">double</span><span class="p">(</span><span class="s1">&#39;Widget&#39;</span><span class="p">,</span> <span class="n">broken?</span><span class="p">:</span> <span class="kp">false</span><span class="p">),</span>
-</span><span class='line'>        <span class="o">]</span><span class="p">,</span>
-</span><span class='line'>        <span class="ss">mechanic</span><span class="p">:</span> <span class="n">mechanic</span>
-</span><span class='line'>      <span class="p">)</span>
+</span><span class='line'>      <span class="c1"># Setup code</span>
 </span><span class='line'>
 </span><span class='line'>      <span class="n">states</span> <span class="o">=</span> <span class="o">[]</span>
 </span><span class='line'>      <span class="n">expect</span><span class="p">(</span><span class="n">mechanic</span><span class="p">)</span><span class="o">.</span><span class="n">to</span> <span class="n">receive</span><span class="p">(</span><span class="ss">:fix</span><span class="p">)</span> <span class="k">do</span> <span class="o">|</span><span class="n">widget</span><span class="o">|</span>
@@ -201,10 +172,10 @@ As in this very contrived example:</p>
 
 
 <p>This leverages the <a href="https://www.relishapp.com/rspec/rspec-mocks/v/2-14/docs/method-stubs/stub-with-substitute-implementation">stub with substitute implementation</a>
-provided by RSpec mocks. This can also be used with <code>allow</code>.</p>
+provided by RSpec mocks. It can also be used with the <code>allow</code> syntax.</p>
 
 <p>While the above version has it&#8217;s uses, it tends to hide some of the intent in
-the closure manipulation. A slightly more expressive method is to just add
+the closure manipulation. A slightly more expressive method is just to add
 the state expectation in the block:</p>
 
 <figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
@@ -216,7 +187,7 @@ the state expectation in the block:</p>
 </span></code></pre></td></tr></table></div></figure>
 
 
-<p>These techniques are great for setting up generic message stubs which require
+<p>This last technique is great for setting up generic message stubs which require
 that something with specific state is provided. By adding it to a generic
 <code>allow</code>, it ensures when the contract is broken anywhere in the code under test,
 the test will properly fail.</p>
