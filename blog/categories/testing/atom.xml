@@ -4,7 +4,7 @@
   <title><![CDATA[Category: testing | Aaron Kromer's Blog]]></title>
   <link href="http://cupakromer.github.com/blog/categories/testing/atom.xml" rel="self"/>
   <link href="http://cupakromer.github.com/"/>
-  <updated>2013-07-28T14:49:05-04:00</updated>
+  <updated>2013-07-29T14:09:02-04:00</updated>
   <id>http://cupakromer.github.com/</id>
   <author>
     <name><![CDATA[Aaron Kromer]]></name>
@@ -12,6 +12,65 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Pitfalls of Testing Scripts With Load - Part 1]]></title>
+    <link href="http://cupakromer.github.com/blog/2013-07-29-pitfalls-of-testing-scripts-with-load-part-1.html"/>
+    <updated>2013-07-29T13:29:00-04:00</updated>
+    <id>http://cupakromer.github.com/blog/pitfalls-of-testing-scripts-with-load-part-1</id>
+    <content type="html"><![CDATA[<p>Previously it was shown how to <a href="http://aaronkromer.com/blog/2013-07-11-testing-scripts-with-load.html">use load to test scripts</a>. As with all techniques, there are some drawbacks to using <code>load</code>.</p>
+
+<h3>Hidden Require Dependency</h3>
+
+<p>Take script:</p>
+
+<p>```ruby</p>
+
+<h1>!/usr/bin/env ruby</h1>
+
+<p>$:.unshift File.join File.dirname(<strong>FILE</strong>), "..", "lib"</p>
+
+<p>require 'local_server'</p>
+
+<p>logger = Logger.new($stderr)</p>
+
+<p>LocalServer.new(logger).run
+```</p>
+
+<p>and passing spec:</p>
+
+<p>```ruby
+require 'spec_helper'
+require 'logger'
+require 'stringio'</p>
+
+<p>describe 'Running the server locally' do
+  it 'logs that it is running' do</p>
+
+<pre><code>io = StringIO.new
+allow(Logger).to receive(:new).and_return(Logger.new io)
+
+expect{ load 'script/local-server' }.to change{ io.string }
+  .to include 'SERVER: starting up'
+</code></pre>
+
+<p>  end
+end
+```</p>
+
+<p>However, when the script is run standalone, it errors with:</p>
+
+<p><code>
+uninitialized constant Logger (NameError)
+</code></p>
+
+<p>Be aware that since <a href="http://ruby-doc.org/core-2.0/Kernel.html#method-i-load"><code>load</code></a>
+happens in the current spec context, a missing <code>require</code> may not be noticed if
+it is required by the spec.</p>
+
+<p>Whenever possible have at least one test that shells out as a sanity check.</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Testing Scripts with Load]]></title>

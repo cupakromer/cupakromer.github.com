@@ -4,7 +4,7 @@
   <title><![CDATA[Category: ruby | Aaron Kromer's Blog]]></title>
   <link href="http://cupakromer.github.com/blog/categories/ruby/atom.xml" rel="self"/>
   <link href="http://cupakromer.github.com/"/>
-  <updated>2013-07-28T14:49:05-04:00</updated>
+  <updated>2013-07-29T14:09:02-04:00</updated>
   <id>http://cupakromer.github.com/</id>
   <author>
     <name><![CDATA[Aaron Kromer]]></name>
@@ -12,6 +12,65 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Pitfalls of Testing Scripts With Load - Part 1]]></title>
+    <link href="http://cupakromer.github.com/blog/2013-07-29-pitfalls-of-testing-scripts-with-load-part-1.html"/>
+    <updated>2013-07-29T13:29:00-04:00</updated>
+    <id>http://cupakromer.github.com/blog/pitfalls-of-testing-scripts-with-load-part-1</id>
+    <content type="html"><![CDATA[<p>Previously it was shown how to <a href="http://aaronkromer.com/blog/2013-07-11-testing-scripts-with-load.html">use load to test scripts</a>. As with all techniques, there are some drawbacks to using <code>load</code>.</p>
+
+<h3>Hidden Require Dependency</h3>
+
+<p>Take script:</p>
+
+<p>```ruby</p>
+
+<h1>!/usr/bin/env ruby</h1>
+
+<p>$:.unshift File.join File.dirname(<strong>FILE</strong>), "..", "lib"</p>
+
+<p>require 'local_server'</p>
+
+<p>logger = Logger.new($stderr)</p>
+
+<p>LocalServer.new(logger).run
+```</p>
+
+<p>and passing spec:</p>
+
+<p>```ruby
+require 'spec_helper'
+require 'logger'
+require 'stringio'</p>
+
+<p>describe 'Running the server locally' do
+  it 'logs that it is running' do</p>
+
+<pre><code>io = StringIO.new
+allow(Logger).to receive(:new).and_return(Logger.new io)
+
+expect{ load 'script/local-server' }.to change{ io.string }
+  .to include 'SERVER: starting up'
+</code></pre>
+
+<p>  end
+end
+```</p>
+
+<p>However, when the script is run standalone, it errors with:</p>
+
+<p><code>
+uninitialized constant Logger (NameError)
+</code></p>
+
+<p>Be aware that since <a href="http://ruby-doc.org/core-2.0/Kernel.html#method-i-load"><code>load</code></a>
+happens in the current spec context, a missing <code>require</code> may not be noticed if
+it is required by the spec.</p>
+
+<p>Whenever possible have at least one test that shells out as a sanity check.</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Monitoring Specific Messages in RSpec Part 3]]></title>
@@ -321,509 +380,6 @@ expect(load 'script/monitor')
 ```</p>
 
 <p>In conclusion, no more excuses for not have integration tests for your scripts.</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[The Bang is for Surprise]]></title>
-    <link href="http://cupakromer.github.com/blog/2013-05-19-the-bang-is-for-surprise.html"/>
-    <updated>2013-05-19T21:20:00-04:00</updated>
-    <id>http://cupakromer.github.com/blog/the-bang-is-for-surprise</id>
-    <content type="html"><![CDATA[<p><strong><em>Note:</em></strong> I'm using Ruby 2.0.0 and RSpec 2.13.1 for these samples. Behavior
-may be slightly different in older versions. YMMV!</p>
-
-<p>One of the more well known features of <a href="github.com/rspec/rspec-core">RSpec</a> is
-<a href="https://www.relishapp.com/rspec/rspec-core/v/2-13/docs/helper-methods/let-and-let!"><code>let</code></a>.
-It provides a way to create a variable as a
-<a href="http://devblog.avdi.org/2012/10/01/barewords/">bareword</a> which is lazy loaded
-and memoized.</p>
-
-<p>It also has a sibling <code>let!</code>. On the surface, <code>let!</code> is just a <code>let</code> without
-the lazy loading. So any variable defined with a <code>let!</code> will always be created
-before a test. This tool has a few nuances that should be know before you reach
-for it.</p>
-
-<p>Take the following sample. <em>What do you think the result will be?</em></p>
-
-<p>```ruby
-describe "Which one wins?" do</p>
-
-<p>  let!(:sample) { "using let bang!" }</p>
-
-<p>  context "inside a context" do</p>
-
-<pre><code>let(:sample) { "normal let" }
-
-it { expect(sample).to eq "normal let" }
-</code></pre>
-
-<p>  end</p>
-
-<p>end
-```</p>
-
-<p>The test passes. This may or may not have been surprising. The rules for nested
-<code>let</code>s, is that the <code>let</code> defined closet to the test in the hierarchy wins.
-But, didn't I say <code>let!</code> always created the object which was then memoized?</p>
-
-<p>I'll get to more about how <code>let</code> and <code>let!</code> are implemented in a minute. For
-now, I want to point out a subtle surprise waiting for you; or possibly bring
-to light that nagging itch at the back of your brain.</p>
-
-<p>```ruby
-describe "Using Conflicting Let and Let!" do</p>
-
-<p>  let!(:user) { create :user, name: 'bob' }</p>
-
-<p>  # LOTS OF CODE SO YOU CAN'T SEE THE ABOVE LINE</p>
-
-<p>  context "inside a context" do</p>
-
-<pre><code>let(:user) { create :user, name: 'alice' }
-
-# Will this pass?
-it do
-  expect(User.count).to eq 0
-end
-</code></pre>
-
-<p>  end</p>
-
-<p>end
-```</p>
-
-<p>Surprise! The test fails:</p>
-
-<p>```text
-  1) Which one wins? inside a context</p>
-
-<pre><code> Failure/Error: expect(User.count).to eq 0
-
-   expected: 0
-        got: 1
-
-   (compared using ==)
-</code></pre>
-
-<p>```</p>
-
-<p><a href="https://www.destroyallsoftware.com/talks/wat"><strong>WAT?</strong></a></p>
-
-<p><code>user</code> was never explicitly referenced in our test or a <code>before</code> block. Above I
-also stated that the <code>let</code> closest to the test <em>wins</em>. Theoretically, by these
-rules one would naturally think the test would have passed. Yet, someone was
-created in the database.</p>
-
-<p><em>Which user definition do you think was created?</em></p>
-
-<p>If we dump the <code>User</code> collection before the <code>expect</code> line we see:</p>
-
-<p><code>ruby
-[&lt;User id: 1, name: "alice", ...&gt;]
-</code></p>
-
-<p>Not only did the inner normal <code>let</code> block appear to override the outer, the
-outer <code>let!</code> behavior took affect!</p>
-
-<p>Let's try one more:</p>
-
-<p>```ruby
-describe "Using Conflicting Nested Let!" do</p>
-
-<p>  let!(:user) { create :user, name: 'bob' }</p>
-
-<p>  context "inside a context" do</p>
-
-<pre><code># Now we'll use the bang version here
-let!(:user) { create :user, name: 'alice' }
-
-# Will this pass?
-it do
-  expect(User.count).to eq 1
-end
-</code></pre>
-
-<p>  end</p>
-
-<p>end
-```</p>
-
-<p>Surprise! It passes:</p>
-
-<p>```text
-Using Conflicting Nested Let!
-  inside a context</p>
-
-<pre><code>should eq 1
-</code></pre>
-
-<p>Finished in 0.02185 seconds
-1 example, 0 failures
-```</p>
-
-<p>Again, dumping the user created we see our good friend Alice:</p>
-
-<p><code>ruby
-[&lt;User id: 1, name: "alice", ...&gt;]
-</code></p>
-
-<p>If you're scratching your brain right now. Don't worry. I did too the first
-time.  However, once we cover what is happening behind that curtain things will
-make perfect sense.</p>
-
-<h2>How <code>let</code> and <code>let!</code> Work</h2>
-
-<p>"<strong><em>Pay <del>[no]</del> attention</em></strong> to that man behind the curtain!"
-- <a href="http://en.wikiquote.org/wiki/The_Wizard_of_Oz#The_Wizard">The Wizard</a></p>
-
-<p>The reason for this behavior, remember I'm using RSpec 2.13, is that <code>let!</code>
-just calls <code>let</code> and <code>before</code> <a href="https://github.com/rspec/rspec-core/blob/5baa615d/lib/rspec/core/memoized_helpers.rb#L257">behind the scenes</a>:</p>
-
-<p><code>ruby
-def let!(name, &amp;block)
-  let(name, &amp;block)
-  before { __send__(name) }
-end
-</code></p>
-
-<p>And all
-<a href="https://github.com/rspec/rspec-core/blob/5baa615d/lib/rspec/core/memoized_helpers.rb#L195"><code>let</code></a>
-does is setup a memoized method based on the name and provided block:</p>
-
-<p>```ruby
-MemoizedHelpers.module_for(self).send(:define_method, name, &amp;block)</p>
-
-<p>define_method(name) do
-  <strong>memoized.fetch(name) { |k| </strong>memoized[k] = super(&amp;nil) }
-end
-```</p>
-
-<h3><em>"Using Conflicting Let and Let!"</em> Explained</h3>
-
-<p>Going back to the example <em>"Using Conflicting Let and Let!"</em> above, where both
-<code>let!</code> and <code>let</code> were used. It should be a bit clearer what is really going on.</p>
-
-<p>When the test runs, the <code>let!</code> has already created the <code>before</code> block, which
-will send the message <code>:user</code>. However, the inner context's <code>let</code> created a new
-method with the same name. Thus based on standard Ruby method lookup, when the
-<code>before</code> block runs the inner method receives the message:</p>
-
-<p>```ruby
-describe "Using Conflicting Let and Let!" do</p>
-
-<p>  # Expanding the following out:
-  # let!(:user) { create :user, name: 'bob' }
-  def user</p>
-
-<pre><code>create :user, name: 'bob'
-</code></pre>
-
-<p>  end
-  before{ user }</p>
-
-<p>  context "inside a context" do</p>
-
-<pre><code># Expanding the following out:
-# let(:user) { create :user, name: 'alice' }
-def user
-  create :user, name: 'alice'
-end
-
-# The outer `before` block will run before this example.
-# Due to the examples being objects, the inner
-# `def user` will receive the `:user` message sent
-# by `before`.
-it do
-  expect(User.count).to eq 0
-end
-</code></pre>
-
-<p>  end</p>
-
-<p>end
-```</p>
-
-<h3><em>"Using Conflicting Nested Let!"</em> Explained</h3>
-
-<p>It should also start to make sense what was going on with the <em>"Using
-Conflicting Nested Let!"</em> example:</p>
-
-<p>```ruby
-describe "Using Conflicting Nested Let!" do</p>
-
-<p>  # Expanding the following out:
-  # let!(:user) { create :user, name: 'bob' }
-  def user</p>
-
-<pre><code>create :user, name: 'bob'
-</code></pre>
-
-<p>  end
-  before{ user }</p>
-
-<p>  context "inside a context" do</p>
-
-<pre><code># Now we'll use the bang version here
-# Expanding the following out:
-# let!(:user) { create :user, name: 'alice' }
-def user
-  create :user, name: 'alice'
-end
-before{ user }
-
-# The outer `before` block will run before this example.
-# Due to the examples being objects, the inner
-# `def user` will receive the `:user` message sent
-# by the outer `before`.
-#
-# The inner `before` block will run next, also sending
-# the message `:user`. This is also received by the
-# inner example object. However, since `let` is also
-# memoized, this doesn't actually execute the `:create`.
-# It just returns the already created object.
-it do
-  expect(User.count).to eq 1
-end
-</code></pre>
-
-<p>  end</p>
-
-<p>end
-```</p>
-
-<h3>It's Just a Method</h3>
-
-<p>I hope that helps demystify the behavior.</p>
-
-<p>Since <code>let</code> is just a helper for setting up methods on the <a href="http://interblah.net/how-rspec-works">example group object</a>
-you can call <code>super</code> in it; though this is generally not an advised practice.</p>
-
-<p>```ruby
-describe "Just a Method" do</p>
-
-<p>  let!(:sample) { "using let bang!" }</p>
-
-<p>  context "using super()" do</p>
-
-<pre><code>let(:sample) {
-  p super()
-  "normal let"
-}
-
-it { expect(sample).to eq "normal let" }
-</code></pre>
-
-<p>  end</p>
-
-<p>end
-```</p>
-
-<p>```text
-Just a Method
-  using super()
-"using let bang!"</p>
-
-<pre><code>should eq "normal let"
-</code></pre>
-
-<p>```</p>
-
-<h2>Avoiding Ambiguity</h2>
-
-<p>Since that tiny little <code>!</code> can be hard to see, especially in a sea of <code>let</code>
-declarations, it is easy to miss it and get surprised. Additionally, seeing as
-how mixing <code>let!</code> and <code>let</code> can lead to some surprises, it's fairly clear why
-<code>let!</code> has started, rightly so in my opinion, to fall out of favor with some of
-the RSpec crowd.</p>
-
-<p>Luckily, there should be very few situations you should find yourself in where
-you want to reach for <code>let!</code> over <code>let</code>. For me, this is usually a situation
-where I'm creating some sort of persisted resource. For instance, the factory
-example, or creating a test file on the system.</p>
-
-<h2>Options For Preloading</h2>
-
-<p>If people are moving away from using <code>let!</code>, how should you preload variables?</p>
-
-<h3>Reference in <code>before</code></h3>
-
-<p>Call them just like RSpec does in a <code>before</code>:</p>
-
-<p>```ruby
-let(:bob)   { create :user, name: 'bob'   }
-let(:alice) { create :user, name: 'alice' }</p>
-
-<p>before do
-  bob
-  alice
-end
-```</p>
-
-<p>To me this looks a bit odd. People I've talked to tend to have two reactions:</p>
-
-<ol>
-<li>Why are you referencing a <em>'variable'</em> and not using it?</li>
-<li>Wouldn't it be a bit more explicit to show the creation using an <code>@var</code>?</li>
-</ol>
-
-
-<p>By now you should know that the first response indicates a lack of understand on
-how RSpec works. They aren't variables, they are actually bareword messages.</p>
-
-<p>The second response is a valid point. The result would be:</p>
-
-<p><code>ruby
-before do
-  @bob   = create :user, name: 'bob'
-  @alice = create :user, name: 'alice'
-end
-</code></p>
-
-<p>This goes back to preference and style. My preference is to reach for a
-bareword whenever I can. One reason is that, when using an instance variables
-you are now locked in to how both <code>@bob</code> and <code>@alice</code> are created. If you later
-wanted to modify them, you could but at the expense of already having created
-the persisted resource; remember <code>before</code> blocks execute outside-in (this isn't
-so much of an issue for lightweight objects). Or you have to roll your own
-memoization scheme (not hard just duplication of work).</p>
-
-<h3>Use a method</h3>
-
-<p>The next common thing I see done is people say: <em>"I'll just wrap it all up in a
-method."</em></p>
-
-<p>```ruby
-def create_users
-  @bob   = create :user, name: 'bob'
-  @alice = create :user, name: 'alice'
-end</p>
-
-<p>before { create_users }
-```</p>
-
-<p>Now the <code>before</code> looks better; it's explicit what is happening. However, the
-new <code>create_users</code> method looks just like our old <code>before</code>. So this really just
-added one level of indirection.  The main advantage here is if we need to
-change the behavior we can just write a new <code>create_users</code> method in an inner
-context. We could also use barewords by making our variables into methods:</p>
-
-<p>```ruby
-def bob
-  @bob ||= create :user, name: 'bob'
-end</p>
-
-<p>def alice
-  @alice ||= create :user, name: 'alice'
-end</p>
-
-<p>def create_users
-  bob
-  alice
-end</p>
-
-<p>before { create_users }
-```</p>
-
-<p>Though now we've duplicated the lazy loading and memoizing logic already
-provided by <code>let</code>.</p>
-
-<p>At this point, you'll probably say, we can make this a bit more explicit and
-clean it up at the same time:</p>
-
-<p>```ruby
-def bob
-  @bob ||= create :user, name: 'bob'
-end</p>
-
-<p>def alice
-  @alice ||= create :user, name: 'alice'
-end</p>
-
-<p>def create_users(*users)
-  users.each{ |user| public_send user }
-end</p>
-
-<p>before { create_users :bob, :alice }
-```</p>
-
-<p>This brings me to my next option.</p>
-
-<h3>Explicit Preload</h3>
-
-<p>Now there's nothing inherently wrong with the above methods. However, to me
-they add a lot of work, without adding much additional value. There are still
-cases where I'll break out the generator method as it's a very useful tool. But
-this section is about another option, so I'll get to it.</p>
-
-<p>Having gone through the cycle of improvement the <em>"hard"</em> way, it's time to
-show you the shortcut. To me, this is reminiscent of high school calculus
-class where the teacher made me do everything the difficult, time consuming
-way, for a week before teaching how it's usually done with the shorter method.</p>
-
-<p>Since pretty much everything in RSpec is already just a method, we can leverage
-that to get our desired behavior. This was discussed in a <a href="https://github.com/rspec/rspec-core/pull/815#issuecomment-14446077">pull request</a>:</p>
-
-<p>```ruby
-module LetPreloadable
-  def preload(*names)</p>
-
-<pre><code>before do
-  names.each { |name| __send__ name }
-end
-</code></pre>
-
-<p>  end
-end</p>
-
-<p>RSpec.configure do |rspec|
-  rspec.extend LetPreloadable
-end
-```</p>
-
-<p>You can place the module code anywhere you want (usually in <code>spec/support</code>).
-Then you'll load it in a <code>RSpec.configure</code> block either in the same file or in
-<code>spec_helper.rb</code>.</p>
-
-<p>Our setup now looks like:</p>
-
-<p>```ruby
-let(:bob)   { create :user, name: 'bob'   }
-let(:alice) { create :user, name: 'alice' }</p>
-
-<p>preload :bob, :alice
-```</p>
-
-<p>Going back to our original example. There is now more context to what is
-happening without the confusing mix of <code>let</code> and <code>let!</code>:</p>
-
-<p>```ruby
-describe "No More Conflicting Let and Let!" do</p>
-
-<p>  let(:user) { create :user, name: 'bob' }</p>
-
-<p>  preload :user</p>
-
-<p>  context "inside a context" do</p>
-
-<pre><code>let(:user) { create :user, name: 'alice' }
-
-it do
-  expect(User.count).to eq 1
-end
-</code></pre>
-
-<p>  end</p>
-
-<p>end
-```</p>
-
-<h2>Introducing <a href="https://github.com/cupakromer/conjurer"><code>Conjurer</code></a> Gem</h2>
-
-<p>I've started using this in enough new projects that I wanted an easy way to
-just add it. I also wanted to be able to include any changes easily. Thus, I've
-rolled it all up into a gem: <a href="http://rubygems.org/gems/conjurer"><code>conjurer</code></a></p>
-
-<p><strong>Happy RSpecing!!</strong></p>
 ]]></content>
   </entry>
   

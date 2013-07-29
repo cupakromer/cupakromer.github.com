@@ -1,0 +1,265 @@
+
+<!DOCTYPE HTML>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>Aaron Kromer's Blog</title>
+    <meta name="author" content="Aaron Kromer">
+    
+	<meta name="description" content="Published on: Jul 18th, 2012 Tags: ruby, travis ci I recently wanted to setup some automated testing for a mini project I
+was working on. I was &hellip;">
+	
+	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+	<link href="/atom.xml" rel="alternate" title="Aaron Kromer's Blog" type="application/atom+xml">
+	<link rel="canonical" href="">
+	<link href="/favicon.ico" rel="shortcut icon">
+    <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+
+    <link href='http://fonts.googleapis.com/css?family=Slackey' rel='stylesheet' type='text/css'>
+    <link href='http://fonts.googleapis.com/css?family=Fjalla+One' rel='stylesheet' type='text/css'>
+    <link href='http://fonts.googleapis.com/css?family=Amethysta' rel='stylesheet' type='text/css'>
+	<script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>
+    <!--[if lt IE 9]><script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script><![endif]-->
+
+    <script type="text/javascript" src="/javascripts/jquery-tapir.js"></script>
+
+    <!-- remove or comment it to disable ajaxification -->   
+    <script src="/javascripts/ajaxify.js"></script>
+   
+    
+    
+	<script type="text/javascript">
+		var _gaq = _gaq || [];
+		_gaq.push(['_setAccount', 'UA-34364108-1']);
+		_gaq.push(['_trackPageview']);
+
+		(function() {
+			var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+			ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+			var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+		})();
+	</script>
+
+
+</head>
+
+
+<body>
+    <div id="wrapper">
+    <header id="header" class="inner"><!-- for more effects see _animate.scss -->
+<hgroup id="headerbg">
+  <h1><a href="/">Aaron Kromer's Blog</a></h1>
+  
+    <h2>A little cup'a Kromer with your code</h2>
+  
+</hgroup>
+
+<ul id="social-links">
+  
+  <!-- GitHub -->
+  <li>
+    <a href="https://github.com/cupakromer" title="GitHub">
+      <i class="foundicon-github"></i>
+    </a>
+  </li>
+  
+  
+  
+  
+  <!-- Twitter -->
+  <li>
+    <a href="http://www.twitter.com/cupakromer" title="Twitter">
+      <i class="foundicon-twitter"></i>
+    </a>
+  </li>
+  
+  
+  
+  
+  <li>
+    <a href="/atom.xml">
+      <i class="foundicon-rss"></i>
+    </a>
+  </li>
+</ul>
+
+
+<!-- use full url including 'index.html' for navigation bar if you are using ajax -->
+<ul id="nav">
+  <li id="ajax"><a href="/index.html">Home</a></li>
+  <li id="ajax"><a href="/blog/archives/index.html">Archives</a></li>
+  
+  <li>
+    <div id="dark">
+      <form method="get" action="/search.html" id="search">
+        <input name="query" type="text" placeholder="Search..." x-webkit-speech />
+      </form>
+    </div>
+  </li>
+  
+</ul>
+
+
+
+
+</header>
+
+<div id="toload">
+<!-- begin toload --> 
+    <div id="content" class="inner">
+        
+
+
+    <article class="post">
+	<h2 class="title">
+		
+		<a href="/blog/2012-07-18-travis-ci-setup-for-plain-old-ruby.html">
+		
+			Travis CI Setup for Plain Old Ruby</a>
+	</h2>
+    <div class="entry-content">
+    <div class="meta">
+      <div class="date">Published on: 
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-07-18T01:11:00-04:00" pubdate data-updated="true">Jul 18<span>th</span>, 2012</time></div>
+      <div class="tags">Tags: 
+
+
+	<a class='category' href='/blog/categories/ruby/'>ruby</a>, <a class='category' href='/blog/categories/travis-ci/'>travis ci</a>
+
+
+</div>
+    </div>
+		<p>I recently wanted to setup some automated testing for a mini project I
+was working on. I was using regular Ruby and wanted to try working with
+<a href="http://travis-ci.org/">Travis CI</a>. For public projects, this is a great <em>free</em>
+resource which I cannot recommend enough.</p>
+
+<p>They have a decent amount of <a href="http://about.travis-ci.org/docs/">documentation</a>
+on how to setup your project. However, it took me longer than I thought
+necessary to get a basic Ruby project configured.</p>
+
+<p>In the end, it came down to needing three things:</p>
+
+<ul>
+<li><p>The <code>rake</code> gem present in either a <code>Gemfile</code> or <code>*.gemspec</code> file</p></li>
+<li><p>A <code>.travis.yml</code> file</p></li>
+</ul>
+
+
+<figure class='code'><figcaption><span>.travis.yml</span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='yaml'><span class='line'><span class="l-Scalar-Plain">language</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">ruby</span>
+</span><span class='line'><span class="l-Scalar-Plain">rvm</span><span class="p-Indicator">:</span>
+</span><span class='line'>  <span class="p-Indicator">-</span> <span class="l-Scalar-Plain">1.9.2</span>
+</span><span class='line'>  <span class="p-Indicator">-</span> <span class="l-Scalar-Plain">1.9.3</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<ul>
+<li>A <code>Rakefile</code> with a default task to run the tests</li>
+</ul>
+
+
+<figure class='code'><figcaption><span>Rakefile</span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="c1">#!/usr/bin/env rake</span>
+</span><span class='line'><span class="nb">require</span> <span class="s2">&quot;bundler/gem_tasks&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="nb">require</span> <span class="s1">&#39;rspec/core/rake_task&#39;</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">desc</span> <span class="s1">&#39;Default: Run specs.&#39;</span>
+</span><span class='line'><span class="n">task</span> <span class="ss">default</span><span class="p">:</span> <span class="ss">:spec</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">desc</span> <span class="s1">&#39;Run specs&#39;</span>
+</span><span class='line'><span class="ss">RSpec</span><span class="p">:</span><span class="ss">:Core</span><span class="o">::</span><span class="no">RakeTask</span><span class="o">.</span><span class="n">new</span> <span class="k">do</span> <span class="o">|</span><span class="n">task</span><span class="o">|</span>
+</span><span class='line'>  <span class="n">task</span><span class="o">.</span><span class="n">rspec_opts</span> <span class="o">=</span> <span class="s2">&quot;--format doc&quot;</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Just drop those two files into your project directory and you are ready
+to experience the fun of CI.</p>
+
+		
+		
+	</div>
+
+<div class="meta">
+	
+</div>
+</article>
+
+<nav id="pagenavi">
+    
+        <a href="/blog/page/2/" class="prev">Prev</a>
+    
+    
+    <div class="center"><a href="/blog/archives">Blog Archives</a></div>
+</nav>
+
+    </div>
+    <footer id="footer">
+    <div style="display:inline">
+  <p>
+    Copyright &copy; 2013
+
+    Aaron Kromer
+.
+    All content on this site is available under a <a href="http://creativecommons.org/publicdomain/zero/1.0/">CC0 license</a>.
+  </p>
+  <p>
+    Powered by <a href="http://octopress.org">Octopress</a> |
+    Theme based on <a href="http://github.com/panks/fabric">fabric</a> by <a href="http://panks.me">Pankaj Kumar</a>
+  </p>
+</div>
+
+
+    </footer>
+    <script src="/javascripts/fabric.js"></script>
+<script src="/javascripts/jquery.fancybox.pack.js"></script>
+<script type="text/javascript">
+(function($){
+	$('.fancybox').fancybox();
+})(jQuery);
+</script> <!-- Delete or comment this line to disable Fancybox -->
+
+
+
+
+
+
+<!-- end toload --> 
+</div>
+</div>
+<script src="/javascripts/jquery.ui.totop.js" type="text/javascript"></script>
+<script type="text/javascript">
+/*<![CDATA[*/
+;(function($){$().UItoTop({easingType:'easeOutCirc'});})(jQuery); 
+/*]]>*/
+</script><!-- remove it to remove the scroll to top button -->
+</body>
+</html>
