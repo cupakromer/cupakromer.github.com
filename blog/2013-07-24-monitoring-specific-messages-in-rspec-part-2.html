@@ -168,7 +168,10 @@ the state expectation in the block:</p>
 <p>This last technique is great for setting up generic message stubs which require
 that something with specific state is provided. By adding it to a generic
 <code>allow</code>, it ensures when the contract is broken anywhere in the code under test,
-the test will properly fail.</p>
+the test will properly fail. (<em>Update 2013-07-30: seems there is an
+<a href="https://github.com/rspec/rspec-mocks/pull/382">issue</a> with this technique when
+combined with
+<a href="https://www.relishapp.com/rspec/rspec-mocks/v/2-14/docs/message-expectations/calling-the-original-method"><code>and_call_original</code></a></em>)</p>
 </div>
 
 <div class="meta">
