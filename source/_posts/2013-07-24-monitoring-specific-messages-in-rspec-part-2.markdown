@@ -49,4 +49,7 @@ end
 This last technique is great for setting up generic message stubs which require
 that something with specific state is provided. By adding it to a generic
 `allow`, it ensures when the contract is broken anywhere in the code under test,
-the test will properly fail.
+the test will properly fail. (_Update 2013-07-30: seems there is an
+[issue](https://github.com/rspec/rspec-mocks/pull/382) with this technique when
+combined with
+[`and_call_original`](https://www.relishapp.com/rspec/rspec-mocks/v/2-14/docs/message-expectations/calling-the-original-method)_)
