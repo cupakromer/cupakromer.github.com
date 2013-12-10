@@ -6,8 +6,8 @@
 	<title>Aaron Kromer's Blog</title>
     <meta name="author" content="Aaron Kromer">
     
-	<meta name="description" content="Published on: Jul 18th, 2012 Tags: ruby, travis ci I recently wanted to setup some automated testing for a mini project I
-was working on. I was &hellip;">
+	<meta name="description" content="Published on: Aug 14th, 2012 Tags: meta, metaprogramming, ruby A few weeks ago was the first Steel City Ruby conference.
+It was a great conference &hellip;">
 	
 	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 
@@ -109,6 +109,220 @@ was working on. I was &hellip;">
 <!-- begin toload --> 
     <div id="content" class="inner">
         
+
+
+    <article class="post">
+	<h2 class="title">
+		
+		<a href="/blog/2012-08-14-everyone-should-learn-meta-programming.html">
+		
+			Everyone Should Learn Metaprogramming</a>
+	</h2>
+    <div class="entry-content">
+    <div class="meta">
+      <div class="date">Published on: 
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-08-14T17:54:00-04:00" pubdate data-updated="true">Aug 14<span>th</span>, 2012</time></div>
+      <div class="tags">Tags: 
+
+
+	<a class='category' href='/blog/categories/meta/'>meta</a>, <a class='category' href='/blog/categories/metaprogramming/'>metaprogramming</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
+
+
+</div>
+    </div>
+		<p>A few weeks ago was the first <a href="http://steelcityrubyconf.org/">Steel City Ruby conference</a>.
+It was a great conference and I would highly recommend you attend next
+year. While there, I had the opportunity to give my first lightning talk.</p>
+
+<p><a href="http://www.flickr.com/photos/charliekilo/7717397572/in/photostream"><img class="right" src="/images/scrc12_lightning_talk.jpg" width="391" height="287" title="12 Lightning Talk" alt="An image of me presenting at SCRC12"></a>
+Now I&#8217;m not one for public speaking, in fact it&#8217;s terrifying for me.
+However, the Ruby community is awesome, friendly, and very encouraging.
+After thinking about it for a while, talking with several people, and
+reflecting on my time participating in <a href="http://scrappyacademy.com/">Scrappy Academy</a>,
+I decided that it was important to speak up about metaprogramming.</p>
+
+<p>I titled my talk: &#8221;<em>Demystifying Metaprogramming</em>.&#8221; The intent was to
+encourage those people who are afraid of &#8220;metaprogramming&#8221; to give it a
+try. I strongly believe if you have been programming Ruby (or Rails -
+this is just Ruby with a fun web framework) for more than two months,
+you owe it to yourself to learn metaprogramming.</p>
+
+<p>To most people, this included me, they hear about &#8220;metaprogramming&#8221; as
+this advanced technique that should be avoided by all but the most
+wizardly among us. Frankly, this big scary stigma attached to
+metaprogramming just isn&#8217;t warranted.</p>
+
+<p><span class='pullquote-right' data-pullquote='&#8220;metaprogramming&#8221; is just
+programming'>
+I&#8217;ll let you in on the big secret, &#8220;metaprogramming&#8221; is just
+programming. Yep. It&#8217;s not scary. It may be a bit complicated, but at
+the end of the day it is well worth your time to learn. You may even find
+it to be fun.
+</span></p>
+
+<p>To help ease you into the topic, we&#8217;ll start with a simple contrived
+example to demonstrate that you already know everything needed to get
+started.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">def</span> <span class="nf">say</span><span class="p">(</span> <span class="n">phrase</span> <span class="p">)</span>
+</span><span class='line'>  <span class="nb">puts</span> <span class="n">phrase</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Yep. That&#8217;s a really basic method. It simply <code>puts</code> the object that is
+passed in. To use this method in <a href="http://en.wikipedia.org/wiki/Interactive_Ruby_Shell">irb</a>
+or <a href="https://github.com/pry/pry">pry</a> we could simply:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="o">&gt;</span> <span class="k">def</span> <span class="nf">say</span><span class="p">(</span> <span class="n">phrase</span> <span class="p">)</span>
+</span><span class='line'><span class="o">*</span>  <span class="nb">puts</span> <span class="n">phrase</span>
+</span><span class='line'><span class="o">*</span> <span class="k">end</span>
+</span><span class='line'><span class="o">=&gt;</span> <span class="kp">nil</span>
+</span><span class='line'><span class="o">&gt;</span> <span class="n">say</span> <span class="s2">&quot;Steel City Ruby I heard you like programming.&quot;</span>
+</span><span class='line'><span class="no">Steel</span> <span class="no">City</span> <span class="no">Ruby</span> <span class="n">I</span> <span class="n">heard</span> <span class="n">you</span> <span class="n">like</span> <span class="n">programming</span><span class="o">.</span>
+</span><span class='line'><span class="o">=&gt;</span> <span class="kp">nil</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>This shouldn&#8217;t be anything shocking so far. In fact, all we&#8217;ve done is
+create a method that calls a method (<code>puts</code>) and pass it a parameter. In
+fact, this concept is at the heart of the &#8220;meta&#8221; programming.</p>
+
+<p>All you really are doing is writing methods, that call another method,
+and pass it a parameter. It just so happens that the parameter you pass,
+tends to be a block that defines a new method.</p>
+
+<blockquote><p>Write a method, that calls a method, that creates a method.*</p></blockquote>
+
+
+<p>So to extend our example and add the &#8220;meta&#8221; part to it, we&#8217;ll just:</p>
+
+<ul>
+<li>Wrap our method in another method</li>
+<li>Pass our method as the parameter to another method</li>
+</ul>
+
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">def</span> <span class="nf">just_programming</span>
+</span><span class='line'>  <span class="nb">class_eval</span> <span class="k">do</span>
+</span><span class='line'>    <span class="k">def</span> <span class="nf">say</span><span class="p">(</span> <span class="n">phrase</span> <span class="p">)</span>
+</span><span class='line'>      <span class="nb">puts</span> <span class="n">phrase</span>
+</span><span class='line'>    <span class="k">end</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>In this case, we&#8217;re using the special <a href="http://www.ruby-doc.org/core-1.9.3/Module.html#method-i-class_eval"><code>class_eval</code></a>
+method. In a nutshell, this will change the value of <code>self</code> and then
+execute the block in this context. In our case, we provide it a block
+which contains the method definition we wish to dynmically create. The
+trick here is that class definitions and methods are active code. So the
+call to <code>def say( phrase )</code> is run just as if we had typed it directly
+in the original class definition.</p>
+
+<p>To be able to use this in a context more familiar, we&#8217;ll just wrap this
+in a module. We can then <code>extend</code> that module in our class and
+dynamically create our method by using our class method
+<code>just_programming</code>.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">module</span> <span class="nn">Meta</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">just_programming</span>
+</span><span class='line'>    <span class="nb">class_eval</span> <span class="k">do</span>
+</span><span class='line'>      <span class="k">def</span> <span class="nf">say</span><span class="p">(</span> <span class="n">phrase</span> <span class="p">)</span>
+</span><span class='line'>        <span class="nb">puts</span> <span class="n">phrase</span>
+</span><span class='line'>      <span class="k">end</span>
+</span><span class='line'>    <span class="k">end</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">class</span> <span class="nc">Foo</span>
+</span><span class='line'>  <span class="kp">extend</span> <span class="no">Meta</span>
+</span><span class='line'>  <span class="n">just_programming</span>
+</span><span class='line'><span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">f</span> <span class="o">=</span> <span class="no">Foo</span><span class="o">.</span><span class="n">new</span>
+</span><span class='line'><span class="n">f</span><span class="o">.</span><span class="n">say</span> <span class="s2">&quot;Steel City Ruby I heard you like programming.&quot;</span>
+</span><span class='line'><span class="o">=&gt;</span> <span class="s2">&quot;Steel City Ruby I heard you like programming.&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>I hope this has helped illustrate that &#8220;metaprogramming&#8221; is only
+programming. It isn&#8217;t anything to be afraid of. Sure, it can get
+complicated at times, but then, what code concepts beyond the bare
+basics can&#8217;t?</p>
+
+<p>You owe it to yourself to learn these nifty and fun coding techniques.
+They will demystify manly things you think are &#8220;magic&#8221;, provide a
+deeper understanding of the Ruby language, and add tools to your
+belt enabling you to write better code.</p>
+
+<p>There are many resources on these topics if you do a search.
+Additionally, <a href="http://pragprog.com/">The Pragmatic Bookshelf</a> has a
+good set of resources on Ruby and metaprogramming. I found the
+videos series on <a href="http://pragprog.com/screencasts/v-dtrubyom/the-ruby-object-model-and-metaprogramming">The Ruby Object Model and Metaprogramming</a>
+very enlightening.</p>
+
+<p>Happy programming!</p>
+
+<p>* Technically, this should really be &#8220;Write a method, that <em>sends a
+message</em>, that creates a method.&#8221; However, I wanted to emphasise the
+progression and went with this version.</p>
+
+		
+		
+	</div>
+
+<div class="meta">
+	
+</div>
+</article>
 
 
     <article class="post">

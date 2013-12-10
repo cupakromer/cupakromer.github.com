@@ -6,7 +6,8 @@
 	<title>Aaron Kromer's Blog</title>
     <meta name="author" content="Aaron Kromer">
     
-	<meta name="description" content="Published on: Jul 29th, 2013 Tags: ruby, script, testing Previously it was shown how to use load to test scripts. As with all techniques, there are &hellip;">
+	<meta name="description" content="Published on: Dec 10th, 2013 Tags: rails, ruby Recently at work, we&#8217;ve been spinning up a bunch of demo apps on Heroku. This
+has worked out &hellip;">
 	
 	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 
@@ -108,6 +109,187 @@
 <!-- begin toload --> 
     <div id="content" class="inner">
         
+
+
+    <article class="post">
+	<h2 class="title">
+		
+		<a href="/blog/2013-12-10-live-ing-dangerously-with-rails.html">
+		
+			Live-ing Dangerously With Rails</a>
+	</h2>
+    <div class="entry-content">
+    <div class="meta">
+      <div class="date">Published on: 
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-12-10T13:08:00-05:00" pubdate data-updated="true">Dec 10<span>th</span>, 2013</time></div>
+      <div class="tags">Tags: 
+
+
+	<a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
+
+
+</div>
+    </div>
+		<p>Recently at work, we&#8217;ve been spinning up a bunch of demo apps on Heroku. This
+has worked out well for us so far. However, some of these apps require
+background data crunching. This hasn&#8217;t been a problem as we just add a Rake
+task, or two, and set the Heroku scheduler to take care of things.</p>
+
+<p>Then comes the day when the sales team says:</p>
+
+<blockquote><p>&#8220;Oh hey. Can we re-run all the numbers but with different configurations?&#8221;</p></blockquote>
+
+<p>Sure, that&#8217;s not a problem you think:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span>heroku run rake redo_all_the_things<span class="o">[</span>config.yml<span class="o">]</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>However, there&#8217;s a few issues with this:</p>
+
+<ol>
+<li>The <code>config.yaml</code> needs to be on Heroku</li>
+<li>This counts against your active dyno time</li>
+</ol>
+
+
+<p>See the thing is, Heroku <a href="https://devcenter.heroku.com/articles/read-only-filesystem">doesn&#8217;t let you create files</a>
+that aren&#8217;t already in your VC system from outside the app. It&#8217;s now
+<a href="https://devcenter.heroku.com/articles/dynos#ephemeral-filesystem">sorta possible on Cedar</a>,
+but not really for this purpose.</p>
+
+<p>Additionally, if these tasks turn out to be long running, that&#8217;ll quickly eat
+up the overhead on the &#8216;free&#8217; dyno. For demo apps of non-paying customers
+that&#8217;s not always an option.</p>
+
+<p>Enter the <code>live</code> environment.</p>
+
+<p>Just add a new <code>live</code> environment to the Rails application. This allows us to
+run Rake locally, but against the production database. Additionally, allowing
+for custom configuration files to just be stored on our local system. And we
+don&#8217;t spin up a new dyno on Heroku.  Win, win!</p>
+
+<p>To setup this up:</p>
+
+<ul>
+<li>Update the <code>Gemfile</code></li>
+</ul>
+
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="c1"># Gemfile</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1"># We use dotenv-rails to help manage environment configs locally.</span>
+</span><span class='line'><span class="c1"># Add our new environment:</span>
+</span><span class='line'><span class="n">gem</span> <span class="s1">&#39;dotenv-rails&#39;</span><span class="p">,</span> <span class="ss">groups</span><span class="p">:</span> <span class="o">[</span><span class="ss">:development</span><span class="p">,</span> <span class="ss">:test</span><span class="p">,</span> <span class="ss">:live</span><span class="o">]</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<ul>
+<li>Add the live specific sample file: <code>.env.live-example</code></li>
+</ul>
+
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="c1"># .env.live-example</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1"># Rename this file to `.env.live` and it will be automatically sourced by</span>
+</span><span class='line'><span class="c1"># rails. Uncomment the settings for them to be picked up.</span>
+</span><span class='line'><span class="c1">#</span>
+</span><span class='line'><span class="c1"># Grab the settings from the output of:</span>
+</span><span class='line'><span class="c1">#</span>
+</span><span class='line'><span class="c1">#  $ heroku config</span>
+</span><span class='line'><span class="c1">#</span>
+</span><span class='line'><span class="c1"># Running against the Heroku production DB directly</span>
+</span><span class='line'><span class="c1"># BE CAREFUL!! YOU HAVE BEEN WARNED!!</span>
+</span><span class='line'><span class="c1">#DATABASE_NAME=WARNING</span>
+</span><span class='line'><span class="c1">#DATABASE_HOST=DANGER</span>
+</span><span class='line'><span class="c1">#DATABASE_PORT=WILL</span>
+</span><span class='line'><span class="c1">#DATABASE_USER=ROBINSON</span>
+</span><span class='line'><span class="c1">#DATABASE_PASSWORD=SERIOUSLY</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<ul>
+<li>Update the <code>database.yml</code> file</li>
+</ul>
+
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+</pre></td><td class='code'><pre><code class='yaml'><span class='line'><span class="c1"># config/database.yml</span>
+</span><span class='line'>
+</span><span class='line'><span class="l-Scalar-Plain">live</span><span class="p-Indicator">:</span>
+</span><span class='line'>  <span class="l-Scalar-Plain">adapter</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">postgresql</span>
+</span><span class='line'>  <span class="l-Scalar-Plain">encoding</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">unicode</span>
+</span><span class='line'>  <span class="l-Scalar-Plain">database</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">&lt;%= ENV[&#39;DATABASE_NAME&#39;] %&gt;</span>
+</span><span class='line'>  <span class="l-Scalar-Plain">host</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">&lt;%= ENV[&#39;DATABASE_HOST&#39;] %&gt;</span>
+</span><span class='line'>  <span class="l-Scalar-Plain">port</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">&lt;%= ENV[&#39;DATABASE_PORT&#39;] %&gt;</span>
+</span><span class='line'>  <span class="l-Scalar-Plain">username</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">&lt;%= ENV[&#39;DATABASE_USER&#39;] %&gt;</span>
+</span><span class='line'>  <span class="l-Scalar-Plain">password</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">&lt;%= ENV[&#39;DATABASE_PASSWORD&#39;] %&gt;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<ul>
+<li>Copy <code>config/environments/production.rb</code> to <code>config/environments/live.rb</code>.
+If you wish to symlink it instead <a href="http://stackoverflow.com/questions/954560/what-does-git-do-to-files-that-are-a-symbolic-link">be wary of how git treats that</a>.</li>
+</ul>
+
+
+<p>Now running our tasks is as simple as:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ RAILS_ENV</span><span class="o">=</span>live rake redo_all_the_things<span class="o">[</span>config-fun-edition.yml<span class="o">]</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+		
+		
+	</div>
+
+<div class="meta">
+	
+</div>
+</article>
 
 
     <article class="post">
@@ -611,127 +793,6 @@ messages.  Or check out one of the many plugins:
 <a href="https://github.com/xaviershay/rspec-fire"><code>rspec-fire</code></a>,
 <a href="https://github.com/psyho/bogus"><code>bogus</code></a>, and
 <a href="https://github.com/ryanong/spy"><code>spy</code></a>.</p>
-
-		
-		
-	</div>
-
-<div class="meta">
-	
-</div>
-</article>
-
-
-    <article class="post">
-	<h2 class="title">
-		
-		<a href="/blog/2013-07-11-testing-scripts-with-load.html">
-		
-			Testing Scripts With Load</a>
-	</h2>
-    <div class="entry-content">
-    <div class="meta">
-      <div class="date">Published on: 
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2013-07-11T12:44:00-04:00" pubdate data-updated="true">Jul 11<span>th</span>, 2013</time></div>
-      <div class="tags">Tags: 
-
-
-	<a class='category' href='/blog/categories/ruby/'>ruby</a>, <a class='category' href='/blog/categories/script/'>script</a>, <a class='category' href='/blog/categories/testing/'>testing</a>
-
-
-</div>
-    </div>
-		<p>A standard method for testing Ruby scripts is to shell out to the script using
-<a href="http://ruby-doc.org/core-2.0/Kernel.html#method-i-60"><code>Kernel#`</code></a>
-or <a href="http://ruby-doc.org/core-2.0/Kernel.html#method-i-system"><code>Kernel#system</code></a>.
-Both of these follow a <a href="http://ruby-doc.org/core-2.0/Kernel.html#method-i-fork"><code>fork</code></a>
-and <a href="http://ruby-doc.org/core-2.0/Kernel.html#method-i-exec"><code>exec</code></a> pattern to
-run the command.</p>
-
-<p>However, there are instances where it is necessary to mock/stub something in
-the script.  The above technique fails in this situation due to <code>exec</code>
-replacing the current process; the stubs simply cease to exist.</p>
-
-<p>The solution: use <a href="http://ruby-doc.org/core-2.0/Kernel.html#method-i-load"><code>load</code></a></p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="c1"># Script</span>
-</span><span class='line'><span class="c1">#!/usr/bin/env ruby</span>
-</span><span class='line'><span class="vg">$:</span><span class="o">.</span><span class="n">unshift</span> <span class="no">File</span><span class="o">.</span><span class="n">join</span> <span class="no">File</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="bp">__FILE__</span><span class="p">),</span> <span class="s2">&quot;..&quot;</span><span class="p">,</span> <span class="s2">&quot;lib&quot;</span>
-</span><span class='line'>
-</span><span class='line'><span class="nb">require</span> <span class="s1">&#39;logger&#39;</span>
-</span><span class='line'><span class="nb">require</span> <span class="s1">&#39;monitor&#39;</span>
-</span><span class='line'><span class="nb">require</span> <span class="s1">&#39;pathname&#39;</span>
-</span><span class='line'><span class="nb">require</span> <span class="s1">&#39;temperature_api&#39;</span>
-</span><span class='line'><span class="nb">require</span> <span class="s1">&#39;tracker&#39;</span>
-</span><span class='line'>
-</span><span class='line'><span class="n">logger</span>    <span class="o">=</span> <span class="no">Logger</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="vg">$stderr</span><span class="p">)</span>
-</span><span class='line'><span class="n">file_path</span> <span class="o">=</span> <span class="no">Pathname</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="no">ARGV</span><span class="o">[</span><span class="mi">0</span><span class="o">]</span><span class="p">)</span>
-</span><span class='line'><span class="n">tracker</span>   <span class="o">=</span> <span class="no">Tracker</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="ss">backup</span><span class="p">:</span> <span class="n">file_path</span><span class="p">)</span>
-</span><span class='line'><span class="n">api</span>       <span class="o">=</span> <span class="no">TemperatureApi</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="s1">&#39;api.server.com&#39;</span><span class="p">)</span>
-</span><span class='line'>
-</span><span class='line'><span class="no">Monitor</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">tracker</span><span class="p">,</span> <span class="n">api</span><span class="p">,</span> <span class="n">logger</span><span class="p">)</span><span class="o">.</span><span class="n">run</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="c1"># Spec</span>
-</span><span class='line'><span class="n">describe</span> <span class="s1">&#39;Monitoring cpu heat&#39;</span> <span class="k">do</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="n">it</span> <span class="s1">&#39;uploads the temperature to the server&#39;</span> <span class="k">do</span>
-</span><span class='line'>    <span class="n">stub_const</span><span class="p">(</span><span class="s1">&#39;ARGV&#39;</span><span class="p">,</span> <span class="o">[</span><span class="s1">&#39;monitor-integration.bak&#39;</span><span class="o">]</span><span class="p">)</span>
-</span><span class='line'>    <span class="n">stub_request</span><span class="p">(</span><span class="ss">:put</span><span class="p">,</span> <span class="s1">&#39;https://api.server.com/temp&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">to_return</span><span class="p">(</span><span class="ss">status</span><span class="p">:</span> <span class="mi">200</span><span class="p">)</span>
-</span><span class='line'>
-</span><span class='line'>    <span class="n">expect</span><span class="p">(</span><span class="nb">load</span> <span class="s1">&#39;script/monitor&#39;</span><span class="p">)</span>
-</span><span class='line'>      <span class="o">.</span><span class="n">to</span> <span class="n">have_requested</span><span class="p">(</span><span class="ss">:put</span><span class="p">,</span> <span class="s1">&#39;https://api.server.com/temp&#39;</span><span class="p">)</span>
-</span><span class='line'>      <span class="o">.</span><span class="n">with</span><span class="p">(</span><span class="ss">body</span><span class="p">:</span> <span class="sr">/\A{&quot;temp&quot;:\d+}\z/</span><span class="p">)</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>In conclusion, no more excuses for not have integration tests for your scripts.</p>
 
 		
 		

@@ -4,7 +4,7 @@
   <title><![CDATA[Category: ruby | Aaron Kromer's Blog]]></title>
   <link href="http://cupakromer.github.com/blog/categories/ruby/atom.xml" rel="self"/>
   <link href="http://cupakromer.github.com/"/>
-  <updated>2013-07-30T21:48:07-04:00</updated>
+  <updated>2013-12-10T13:22:20-05:00</updated>
   <id>http://cupakromer.github.com/</id>
   <author>
     <name><![CDATA[Aaron Kromer]]></name>
@@ -12,6 +12,140 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Live-ing Dangerously with Rails]]></title>
+    <link href="http://cupakromer.github.com/blog/2013-12-10-live-ing-dangerously-with-rails.html"/>
+    <updated>2013-12-10T13:08:00-05:00</updated>
+    <id>http://cupakromer.github.com/blog/live-ing-dangerously-with-rails</id>
+    <content type="html"><![CDATA[<p>Recently at work, we've been spinning up a bunch of demo apps on Heroku. This
+has worked out well for us so far. However, some of these apps require
+background data crunching. This hasn't been a problem as we just add a Rake
+task, or two, and set the Heroku scheduler to take care of things.</p>
+
+<p>Then comes the day when the sales team says:</p>
+
+<blockquote><p>"Oh hey. Can we re-run all the numbers but with different configurations?"</p></blockquote>
+
+<p>Sure, that's not a problem you think:</p>
+
+<p><code>bash
+$ heroku run rake redo_all_the_things[config.yml]
+</code></p>
+
+<p>However, there's a few issues with this:</p>
+
+<ol>
+<li>The <code>config.yaml</code> needs to be on Heroku</li>
+<li>This counts against your active dyno time</li>
+</ol>
+
+
+<p>See the thing is, Heroku <a href="https://devcenter.heroku.com/articles/read-only-filesystem">doesn't let you create files</a>
+that aren't already in your VC system from outside the app. It's now
+<a href="https://devcenter.heroku.com/articles/dynos#ephemeral-filesystem">sorta possible on Cedar</a>,
+but not really for this purpose.</p>
+
+<p>Additionally, if these tasks turn out to be long running, that'll quickly eat
+up the overhead on the 'free' dyno. For demo apps of non-paying customers
+that's not always an option.</p>
+
+<p>Enter the <code>live</code> environment.</p>
+
+<p>Just add a new <code>live</code> environment to the Rails application. This allows us to
+run Rake locally, but against the production database. Additionally, allowing
+for custom configuration files to just be stored on our local system. And we
+don't spin up a new dyno on Heroku.  Win, win!</p>
+
+<p>To setup this up:</p>
+
+<ul>
+<li>Update the <code>Gemfile</code></li>
+</ul>
+
+
+<p>```ruby</p>
+
+<h1>Gemfile</h1>
+
+<h1>We use dotenv-rails to help manage environment configs locally.</h1>
+
+<h1>Add our new environment:</h1>
+
+<p>gem 'dotenv-rails', groups: [:development, :test, :live]
+```</p>
+
+<ul>
+<li>Add the live specific sample file: <code>.env.live-example</code></li>
+</ul>
+
+
+<p>```ruby</p>
+
+<h1>.env.live-example</h1>
+
+<h1>Rename this file to <code>.env.live</code> and it will be automatically sourced by</h1>
+
+<h1>rails. Uncomment the settings for them to be picked up.</h1>
+
+<p>#</p>
+
+<h1>Grab the settings from the output of:</h1>
+
+<p>#</p>
+
+<h1>$ heroku config</h1>
+
+<p>#</p>
+
+<h1>Running against the Heroku production DB directly</h1>
+
+<h1>BE CAREFUL!! YOU HAVE BEEN WARNED!!</h1>
+
+<h1>DATABASE_NAME=WARNING</h1>
+
+<h1>DATABASE_HOST=DANGER</h1>
+
+<h1>DATABASE_PORT=WILL</h1>
+
+<h1>DATABASE_USER=ROBINSON</h1>
+
+<h1>DATABASE_PASSWORD=SERIOUSLY</h1>
+
+<p>```</p>
+
+<ul>
+<li>Update the <code>database.yml</code> file</li>
+</ul>
+
+
+<p>```yaml</p>
+
+<h1>config/database.yml</h1>
+
+<p>live:
+  adapter: postgresql
+  encoding: unicode
+  database: &lt;%= ENV['DATABASE_NAME'] %>
+  host: &lt;%= ENV['DATABASE_HOST'] %>
+  port: &lt;%= ENV['DATABASE_PORT'] %>
+  username: &lt;%= ENV['DATABASE_USER'] %>
+  password: &lt;%= ENV['DATABASE_PASSWORD'] %>
+```</p>
+
+<ul>
+<li>Copy <code>config/environments/production.rb</code> to <code>config/environments/live.rb</code>.
+If you wish to symlink it instead <a href="http://stackoverflow.com/questions/954560/what-does-git-do-to-files-that-are-a-symbolic-link">be wary of how git treats that</a>.</li>
+</ul>
+
+
+<p>Now running our tasks is as simple as:</p>
+
+<p><code>bash
+$ RAILS_ENV=live rake redo_all_the_things[config-fun-edition.yml]
+</code></p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Pitfalls of Testing Scripts With Load - Part 1]]></title>
@@ -318,71 +452,6 @@ messages.  Or check out one of the many plugins:
 <a href="https://github.com/xaviershay/rspec-fire"><code>rspec-fire</code></a>,
 <a href="https://github.com/psyho/bogus"><code>bogus</code></a>, and
 <a href="https://github.com/ryanong/spy"><code>spy</code></a>.</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Testing Scripts with Load]]></title>
-    <link href="http://cupakromer.github.com/blog/2013-07-11-testing-scripts-with-load.html"/>
-    <updated>2013-07-11T12:44:00-04:00</updated>
-    <id>http://cupakromer.github.com/blog/testing-scripts-with-load</id>
-    <content type="html"><![CDATA[<p>A standard method for testing Ruby scripts is to shell out to the script using
-<a href="http://ruby-doc.org/core-2.0/Kernel.html#method-i-60"><code>Kernel#`</code></a>
-or <a href="http://ruby-doc.org/core-2.0/Kernel.html#method-i-system"><code>Kernel#system</code></a>.
-Both of these follow a <a href="http://ruby-doc.org/core-2.0/Kernel.html#method-i-fork"><code>fork</code></a>
-and <a href="http://ruby-doc.org/core-2.0/Kernel.html#method-i-exec"><code>exec</code></a> pattern to
-run the command.</p>
-
-<p>However, there are instances where it is necessary to mock/stub something in
-the script.  The above technique fails in this situation due to <code>exec</code>
-replacing the current process; the stubs simply cease to exist.</p>
-
-<p>The solution: use <a href="http://ruby-doc.org/core-2.0/Kernel.html#method-i-load"><code>load</code></a></p>
-
-<p>```ruby</p>
-
-<h1>Script</h1>
-
-<h1>!/usr/bin/env ruby</h1>
-
-<p>$:.unshift File.join File.dirname(<strong>FILE</strong>), "..", "lib"</p>
-
-<p>require 'logger'
-require 'monitor'
-require 'pathname'
-require 'temperature_api'
-require 'tracker'</p>
-
-<p>logger    = Logger.new($stderr)
-file_path = Pathname.new(ARGV[0])
-tracker   = Tracker.new(backup: file_path)
-api       = TemperatureApi.new('api.server.com')</p>
-
-<p>Monitor.new(tracker, api, logger).run
-```</p>
-
-<p>```ruby</p>
-
-<h1>Spec</h1>
-
-<p>describe 'Monitoring cpu heat' do</p>
-
-<p>  it 'uploads the temperature to the server' do</p>
-
-<pre><code>stub_const('ARGV', ['monitor-integration.bak'])
-stub_request(:put, 'https://api.server.com/temp').to_return(status: 200)
-
-expect(load 'script/monitor')
-  .to have_requested(:put, 'https://api.server.com/temp')
-  .with(body: /\A{"temp":\d+}\z/)
-</code></pre>
-
-<p>  end</p>
-
-<p>end
-```</p>
-
-<p>In conclusion, no more excuses for not have integration tests for your scripts.</p>
 ]]></content>
   </entry>
   
