@@ -24,7 +24,7 @@ $ heroku run rake redo_all_the_things[config.yml]
 
 However, there's a few issues with this:
 
-  1. The `config.yaml` needs to be on Heroku
+  1. The `config.yml` needs to be on Heroku
   2. This counts against your active dyno time
 
 See the thing is, Heroku [doesn't let you create files](https://devcenter.heroku.com/articles/read-only-filesystem)
@@ -43,7 +43,7 @@ run Rake locally, but against the production database. Additionally, allowing
 for custom configuration files to just be stored on our local system. And we
 don't spin up a new dyno on Heroku.  Win, win!
 
-To setup this up:
+To set this up:
 
 * Update the `Gemfile`
 
