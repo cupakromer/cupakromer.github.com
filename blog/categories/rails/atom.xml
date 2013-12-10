@@ -4,7 +4,7 @@
   <title><![CDATA[Category: rails | Aaron Kromer's Blog]]></title>
   <link href="http://cupakromer.github.com/blog/categories/rails/atom.xml" rel="self"/>
   <link href="http://cupakromer.github.com/"/>
-  <updated>2013-12-10T13:22:20-05:00</updated>
+  <updated>2013-12-10T14:21:04-05:00</updated>
   <id>http://cupakromer.github.com/</id>
   <author>
     <name><![CDATA[Aaron Kromer]]></name>
@@ -36,7 +36,7 @@ $ heroku run rake redo_all_the_things[config.yml]
 <p>However, there's a few issues with this:</p>
 
 <ol>
-<li>The <code>config.yaml</code> needs to be on Heroku</li>
+<li>The <code>config.yml</code> needs to be on Heroku</li>
 <li>This counts against your active dyno time</li>
 </ol>
 
@@ -57,7 +57,7 @@ run Rake locally, but against the production database. Additionally, allowing
 for custom configuration files to just be stored on our local system. And we
 don't spin up a new dyno on Heroku.  Win, win!</p>
 
-<p>To setup this up:</p>
+<p>To set this up:</p>
 
 <ul>
 <li>Update the <code>Gemfile</code></li>

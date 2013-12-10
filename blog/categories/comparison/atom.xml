@@ -4,7 +4,7 @@
   <title><![CDATA[Category: comparison | Aaron Kromer's Blog]]></title>
   <link href="http://cupakromer.github.com/blog/categories/comparison/atom.xml" rel="self"/>
   <link href="http://cupakromer.github.com/"/>
-  <updated>2013-12-10T13:22:20-05:00</updated>
+  <updated>2013-12-10T14:21:04-05:00</updated>
   <id>http://cupakromer.github.com/</id>
   <author>
     <name><![CDATA[Aaron Kromer]]></name>
@@ -44,7 +44,10 @@ Thanks to Twitter, specifically James Edward Gray II
 <a href="https://twitter.com/jeg2">@JEG2</a> who btw completely rocks, I was pointed at
 <code>===</code>. Though the documentation on <code>===</code> leaves something to be desired:</p>
 
-<p>  <blockquote><p>Used to compare each of the items with the target in the <code>when</code> clause of<br/>  a <code>case</code> statement.</p><footer><strong>Dave Thomas, Programming Ruby 1.9, page 128</strong> <cite><a href='http://pragprog.com/book/ruby/programming-ruby'>pragprog.com/book/ruby/&hellip;</a></cite></footer></blockquote></p>
+<p>  {% blockquote Dave Thomas, Programming Ruby 1.9, page 128 http://pragprog.com/book/ruby/programming-ruby %}
+  Used to compare each of the items with the target in the <code>when</code> clause of
+  a <code>case</code> statement.
+  {% endblockquote %}</p>
 
 <ul>
 <li>The <a href="http://ruby-doc.org/core-1.9.3/String.html#method-i-3D-3D-3D">String API</a>
