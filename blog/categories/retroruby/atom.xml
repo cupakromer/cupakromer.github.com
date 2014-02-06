@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: retroruby | Aaron Kromer's Blog]]></title>
+  <link href="http://cupakromer.github.com/blog/categories/retroruby/atom.xml" rel="self"/>
+  <link href="http://cupakromer.github.com/"/>
+  <updated>2014-02-06T15:55:26-05:00</updated>
+  <id>http://cupakromer.github.com/</id>
+  <author>
+    <name><![CDATA[Aaron Kromer]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Discussion about open classes and monkey patching at #retroruby]]></title>
+    <link href="http://cupakromer.github.com/blog/2014-02-06-open-classes-and-monkey-patching-at-retroruby.html"/>
+    <updated>2014-02-06T15:28:00-05:00</updated>
+    <id>http://cupakromer.github.com/blog/open-classes-and-monkey-patching-at-retroruby</id>
+    <content type="html"><![CDATA[<p>While at <a href="http://retroruby.org">RetroRuby 2014</a> a very good question was asked
+in the newbie track. The following code sample had just been shown on some
+basic awesomeness of Ruby:</p>
+
+<p>```ruby
+"Words" * 2</p>
+
+<h1>=> "WordsWords"</h1>
+
+<p>```</p>
+
+<p>One of the participants then asked why that worked but the inverse didn't:</p>
+
+<p>```ruby
+2 * "Words"</p>
+
+<h1>TypeError: String can't be coerced into Fixnum</h1>
+
+<p>```</p>
+
+<h2>Oops what just happened?</h2>
+
+<p>In Ruby, virtually everything is accomplished by sending a message to another
+object. Above we would say:</p>
+
+<blockquote><p><em>Send the message <code>*</code> to <code>"Words"</code> with parameter <code>2</code></em></p>
+
+<p><em>Send the message <code>*</code> to <code>2</code> with parameter <code>"Words"</code></em></p></blockquote>
+
+<p>"Sending a message" is the Java equivalent of calling a method. Another way to
+write the above is:</p>
+
+<p>```ruby
+"Words".*(2)</p>
+
+<h1>=> "WordsWords"</h1>
+
+<p>```</p>
+
+<p>Here we used the normal "method" calling syntax: <code>obj.method(args)</code></p>
+
+<p>You'll also probably see the following:</p>
+
+<p>```ruby
+"Words".send(:*, 2)</p>
+
+<h1>=> "WordsWords"</h1>
+
+<p>```</p>
+
+<p>This time we explicitly sent the message: <code>obj.send(message, args)</code></p>
+
+<p>With <a href="http://ruby-doc.org/core-2.1.0/Object.html#method-i-send"><code>send</code></a> Ruby
+doesn't check if the message you passed was supposed to be public or private.
+Generally, what you wanted to do was dynamically send the message while still
+making sure to respect the public API of the object. To do this you should use
+<a href="http://ruby-doc.org/core-2.1.0/Object.html#method-i-public_send"><code>public_send</code></a>
+instead: <code>obj.public_send(message, args)</code>.</p>
+
+<p>So back to the original issue. Both
+<a href="http://ruby-doc.org/core-2.1.0/String.html"><code>String</code></a> and
+<a href="http://ruby-doc.org/core-2.1.0/Fixnum.html"><code>Fixnum</code></a> respond to the message
+<code>*</code>.</p>
+
+<ul>
+<li><a href="http://ruby-doc.org/core-2.1.0/String.html#method-i-2A"><code>String#*</code></a></li>
+<li><a href="http://ruby-doc.org/core-2.1.0/Fixnum.html#method-i-2A"><code>Fixnum#*</code></a></li>
+</ul>
+
+
+<p>However, <code>String</code>'s implementation knows what to do when the argument is a
+<code>Fixnum</code>. When we reverse it, the <code>Fixnum</code> implementation doesn't understand
+what to do with a <code>String</code> argument.</p>
+
+<h2>How to fix this?</h2>
+
+<p>Well you probably shouldn't. But just for fun we'll use Ruby's open class
+behavior to monkey patch <code>Fixnum</code>'s <code>*</code> implementation.</p>
+
+<p>```ruby
+class Fixnum # We just re-opened the class</p>
+
+<p>  def *(arg) # We're redefining the * message - this destroys the</p>
+
+<pre><code>         # previous implementation!!!
+arg * self
+</code></pre>
+
+<p>  end</p>
+
+<p>end</p>
+
+<p>2 * "Words"</p>
+
+<h1>=> WordsWords</h1>
+
+<p>```</p>
+
+<p>It worked!! Before you go doing this to everything, be aware we've now lost the
+ability to do normal multiplication. Additionally, we'll overflow the stack
+trying to multiply two <code>Fixnum</code>s.</p>
+
+<p>```ruby
+2 * 2</p>
+
+<h1>SystemStackError: stack level too deep</h1>
+
+<p>```</p>
+
+<h2>Wrap Up</h2>
+
+<p>In Ruby, most things are messages sent from one object to another. Some times
+the language gives a little extra syntactic sugar to make sending the message
+more readable.</p>
+
+<p>Additionally, open classes and monkey patching have their uses. Just be aware
+that with great power comes great responsibility. Always stop to ask yourself
+if this is really a good idea; and try to never change existing behavior if you
+can.</p>
+
+<h2>Level Up!</h2>
+
+<p>So what if we just wanted to extend the existing functionality.  There are a
+lot of ways to do this and covering each, along with the pros and cons is very
+out of scope for this post. I'm just going to demonstrate one way to illustrate
+how it could be done.</p>
+
+<p>You'll need a new irb or Pry session so we get the original implementation for
+<code>Fixnum</code> back.</p>
+
+<p>```ruby
+class Fixnum # We just re-opened the class</p>
+
+<p>  # We need to store a reference to the original implementation One way to do
+  # this is to create an alias for the original implementation so we can call
+  # it later. Be sure to pick a descriptive name so that it isn't accidentally
+  # overwritten by something else.
+  alias :star_without_string_support :*</p>
+
+<p>  def *(arg) # Redefine the message destroying the previous implementation!!!</p>
+
+<pre><code>if arg.is_a? String
+  arg * self
+else
+  star_without_string_support arg  # use the original implementation
+end
+</code></pre>
+
+<p>  end</p>
+
+<p>end
+```</p>
+]]></content>
+  </entry>
+  
+</feed>

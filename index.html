@@ -6,8 +6,8 @@
 	<title>Aaron Kromer's Blog</title>
     <meta name="author" content="Aaron Kromer">
     
-	<meta name="description" content="Published on: Dec 10th, 2013 Tags: rails, ruby Recently at work, we&#8217;ve been spinning up a bunch of demo apps on Heroku. This
-has worked out &hellip;">
+	<meta name="description" content="Published on: Feb 6th, 2014 Tags: retroruby, ruby While at RetroRuby 2014 a very good question was asked
+in the newbie track. The following code &hellip;">
 	
 	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 
@@ -109,6 +109,219 @@ has worked out &hellip;">
 <!-- begin toload --> 
     <div id="content" class="inner">
         
+
+
+    <article class="post">
+	<h2 class="title">
+		
+		<a href="/blog/2014-02-06-open-classes-and-monkey-patching-at-retroruby.html">
+		
+			Discussion About Open Classes and Monkey Patching at #retroruby</a>
+	</h2>
+    <div class="entry-content">
+    <div class="meta">
+      <div class="date">Published on: 
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-02-06T15:28:00-05:00" pubdate data-updated="true">Feb 6<span>th</span>, 2014</time></div>
+      <div class="tags">Tags: 
+
+
+	<a class='category' href='/blog/categories/retroruby/'>retroruby</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
+
+
+</div>
+    </div>
+		<p>While at <a href="http://retroruby.org">RetroRuby 2014</a> a very good question was asked
+in the newbie track. The following code sample had just been shown on some
+basic awesomeness of Ruby:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="s2">&quot;Words&quot;</span> <span class="o">*</span> <span class="mi">2</span>
+</span><span class='line'><span class="c1"># =&gt; &quot;WordsWords&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>One of the participants then asked why that worked but the inverse didn&#8217;t:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="mi">2</span> <span class="o">*</span> <span class="s2">&quot;Words&quot;</span>
+</span><span class='line'><span class="c1"># TypeError: String can&#39;t be coerced into Fixnum</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h2>Oops what just happened?</h2>
+
+<p>In Ruby, virtually everything is accomplished by sending a message to another
+object. Above we would say:</p>
+
+<blockquote><p><em>Send the message <code>*</code> to <code>"Words"</code> with parameter <code>2</code></em></p>
+
+<p><em>Send the message <code>*</code> to <code>2</code> with parameter <code>"Words"</code></em></p></blockquote>
+
+<p>&#8220;Sending a message&#8221; is the Java equivalent of calling a method. Another way to
+write the above is:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="s2">&quot;Words&quot;</span><span class="o">.</span><span class="n">*</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+</span><span class='line'><span class="c1"># =&gt; &quot;WordsWords&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Here we used the normal &#8220;method&#8221; calling syntax: <code>obj.method(args)</code></p>
+
+<p>You&#8217;ll also probably see the following:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="s2">&quot;Words&quot;</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="ss">:*</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+</span><span class='line'><span class="c1"># =&gt; &quot;WordsWords&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>This time we explicitly sent the message: <code>obj.send(message, args)</code></p>
+
+<p>With <a href="http://ruby-doc.org/core-2.1.0/Object.html#method-i-send"><code>send</code></a> Ruby
+doesn&#8217;t check if the message you passed was supposed to be public or private.
+Generally, what you wanted to do was dynamically send the message while still
+making sure to respect the public API of the object. To do this you should use
+<a href="http://ruby-doc.org/core-2.1.0/Object.html#method-i-public_send"><code>public_send</code></a>
+instead: <code>obj.public_send(message, args)</code>.</p>
+
+<p>So back to the original issue. Both
+<a href="http://ruby-doc.org/core-2.1.0/String.html"><code>String</code></a> and
+<a href="http://ruby-doc.org/core-2.1.0/Fixnum.html"><code>Fixnum</code></a> respond to the message
+<code>*</code>.</p>
+
+<ul>
+<li><a href="http://ruby-doc.org/core-2.1.0/String.html#method-i-2A"><code>String#*</code></a></li>
+<li><a href="http://ruby-doc.org/core-2.1.0/Fixnum.html#method-i-2A"><code>Fixnum#*</code></a></li>
+</ul>
+
+
+<p>However, <code>String</code>&#8217;s implementation knows what to do when the argument is a
+<code>Fixnum</code>. When we reverse it, the <code>Fixnum</code> implementation doesn&#8217;t understand
+what to do with a <code>String</code> argument.</p>
+
+<h2>How to fix this?</h2>
+
+<p>Well you probably shouldn&#8217;t. But just for fun we&#8217;ll use Ruby&#8217;s open class
+behavior to monkey patch <code>Fixnum</code>&#8217;s <code>*</code> implementation.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Fixnum</span> <span class="c1"># We just re-opened the class</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">*</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span> <span class="c1"># We&#39;re redefining the * message - this destroys the</span>
+</span><span class='line'>             <span class="c1"># previous implementation!!!</span>
+</span><span class='line'>    <span class="n">arg</span> <span class="o">*</span> <span class="nb">self</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'><span class="mi">2</span> <span class="o">*</span> <span class="s2">&quot;Words&quot;</span>
+</span><span class='line'><span class="c1"># =&gt; WordsWords</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>It worked!! Before you go doing this to everything, be aware we&#8217;ve now lost the
+ability to do normal multiplication. Additionally, we&#8217;ll overflow the stack
+trying to multiply two <code>Fixnum</code>s.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="mi">2</span> <span class="o">*</span> <span class="mi">2</span>
+</span><span class='line'><span class="c1"># SystemStackError: stack level too deep</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h2>Wrap Up</h2>
+
+<p>In Ruby, most things are messages sent from one object to another. Some times
+the language gives a little extra syntactic sugar to make sending the message
+more readable.</p>
+
+<p>Additionally, open classes and monkey patching have their uses. Just be aware
+that with great power comes great responsibility. Always stop to ask yourself
+if this is really a good idea; and try to never change existing behavior if you
+can.</p>
+
+<h2>Level Up!</h2>
+
+<p>So what if we just wanted to extend the existing functionality.  There are a
+lot of ways to do this and covering each, along with the pros and cons is very
+out of scope for this post. I&#8217;m just going to demonstrate one way to illustrate
+how it could be done.</p>
+
+<p>You&#8217;ll need a new irb or Pry session so we get the original implementation for
+<code>Fixnum</code> back.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Fixnum</span> <span class="c1"># We just re-opened the class</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="c1"># We need to store a reference to the original implementation One way to do</span>
+</span><span class='line'>  <span class="c1"># this is to create an alias for the original implementation so we can call</span>
+</span><span class='line'>  <span class="c1"># it later. Be sure to pick a descriptive name so that it isn&#39;t accidentally</span>
+</span><span class='line'>  <span class="c1"># overwritten by something else.</span>
+</span><span class='line'>  <span class="k">alias</span> <span class="ss">:star_without_string_support</span> <span class="ss">:*</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">*</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span> <span class="c1"># Redefine the message destroying the previous implementation!!!</span>
+</span><span class='line'>    <span class="k">if</span> <span class="n">arg</span><span class="o">.</span><span class="n">is_a?</span> <span class="nb">String</span>
+</span><span class='line'>      <span class="n">arg</span> <span class="o">*</span> <span class="nb">self</span>
+</span><span class='line'>    <span class="k">else</span>
+</span><span class='line'>      <span class="n">star_without_string_support</span> <span class="n">arg</span>  <span class="c1"># use the original implementation</span>
+</span><span class='line'>    <span class="k">end</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+		
+		
+	</div>
+
+<div class="meta">
+	
+</div>
+</article>
 
 
     <article class="post">
@@ -650,159 +863,6 @@ combined with
 </div>
 </article>
 
-
-    <article class="post">
-	<h2 class="title">
-		
-		<a href="/blog/2013-07-17-monitoring-specific-messages-in-rspec.html">
-		
-			Monitoring Specific Messages in RSpec</a>
-	</h2>
-    <div class="entry-content">
-    <div class="meta">
-      <div class="date">Published on: 
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2013-07-17T11:34:00-04:00" pubdate data-updated="true">Jul 17<span>th</span>, 2013</time></div>
-      <div class="tags">Tags: 
-
-
-	<a class='category' href='/blog/categories/rspec/'>rspec</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
-
-
-</div>
-    </div>
-		<p>A common question I see asked in the #rspec IRC channel is:</p>
-
-<blockquote><p>How do I verify only a specific message is received?</p></blockquote>
-
-<p>The context of this question is usually a method that sends the same message
-multiple time, but with different arguments.</p>
-
-<p>Take the following contrived example:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">def</span> <span class="nf">do_stuff</span><span class="p">(</span><span class="n">thing</span><span class="p">)</span>
-</span><span class='line'>  <span class="n">thing</span><span class="o">.</span><span class="n">do</span> <span class="ss">:having_fun</span>
-</span><span class='line'>  <span class="n">thing</span><span class="o">.</span><span class="n">do</span> <span class="ss">:drink_coffee</span>
-</span><span class='line'>  <span class="n">thing</span><span class="o">.</span><span class="n">do</span> <span class="ss">:code</span>
-</span><span class='line'><span class="k">end</span>
-</span><span class='line'>
-</span><span class='line'><span class="n">describe</span> <span class="s1">&#39;Coffee time!&#39;</span> <span class="k">do</span>
-</span><span class='line'>  <span class="n">it</span> <span class="s1">&#39;drinks the coffee&#39;</span> <span class="k">do</span>
-</span><span class='line'>    <span class="n">thing</span> <span class="o">=</span> <span class="n">double</span><span class="p">(</span><span class="s1">&#39;Thing&#39;</span><span class="p">)</span>
-</span><span class='line'>
-</span><span class='line'>    <span class="n">expect</span><span class="p">(</span><span class="n">thing</span><span class="p">)</span><span class="o">.</span><span class="n">to</span> <span class="n">receive</span><span class="p">(</span><span class="ss">:do</span><span class="p">)</span><span class="o">.</span><span class="n">with</span><span class="p">(</span><span class="ss">:drink_coffee</span><span class="p">)</span>
-</span><span class='line'>
-</span><span class='line'>    <span class="n">do_stuff</span> <span class="n">thing</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Alas, it fails:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-</pre></td><td class='code'><pre><code class='text'><span class='line'>Double &quot;Thing&quot; received :do with unexpected arguments
-</span><span class='line'>         expected: (:drink_coffee)
-</span><span class='line'>              got: (:having_fun)
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>The solution is to add a generic stub (a catchall) for the desired message:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">describe</span> <span class="s1">&#39;Coffee time!&#39;</span> <span class="k">do</span>
-</span><span class='line'>  <span class="n">it</span> <span class="s1">&#39;drinks the coffee&#39;</span> <span class="k">do</span>
-</span><span class='line'>    <span class="n">thing</span> <span class="o">=</span> <span class="n">double</span><span class="p">(</span><span class="s1">&#39;Thing&#39;</span><span class="p">)</span>
-</span><span class='line'>
-</span><span class='line'>    <span class="n">allow</span><span class="p">(</span><span class="n">thing</span><span class="p">)</span><span class="o">.</span><span class="n">to</span> <span class="n">receive</span><span class="p">(</span><span class="ss">:do</span><span class="p">)</span>
-</span><span class='line'>    <span class="n">expect</span><span class="p">(</span><span class="n">thing</span><span class="p">)</span><span class="o">.</span><span class="n">to</span> <span class="n">receive</span><span class="p">(</span><span class="ss">:do</span><span class="p">)</span><span class="o">.</span><span class="n">with</span><span class="p">(</span><span class="ss">:drink_coffee</span><span class="p">)</span>
-</span><span class='line'>
-</span><span class='line'>    <span class="n">do_stuff</span> <span class="n">thing</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>There is another solution which can also be used:
-<a href="https://www.relishapp.com/rspec/rspec-mocks/v/2-14/docs/method-stubs/as-null-object"><code>as_null_object</code></a>.</p>
-
-<p>The issue with <code>as_null_object</code> is that it will happily hum along even for
-invalid and unexpected messages. The double stub pattern above is
-explicit in the test, matching the catchall only with the message expectation.</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">describe</span> <span class="s1">&#39;Coffee time!&#39;</span> <span class="k">do</span>
-</span><span class='line'>  <span class="n">it</span> <span class="s1">&#39;drinks the coffee&#39;</span> <span class="k">do</span>
-</span><span class='line'>    <span class="n">thing</span> <span class="o">=</span> <span class="n">double</span><span class="p">(</span><span class="s1">&#39;Thing&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">as_null_object</span>
-</span><span class='line'>
-</span><span class='line'>    <span class="n">expect</span><span class="p">(</span><span class="n">thing</span><span class="p">)</span><span class="o">.</span><span class="n">to</span> <span class="n">receive</span><span class="p">(</span><span class="ss">:do</span><span class="p">)</span><span class="o">.</span><span class="n">with</span><span class="p">(</span><span class="ss">:drink_coffee</span><span class="p">)</span>
-</span><span class='line'>
-</span><span class='line'>    <span class="n">do_stuff</span> <span class="n">thing</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Stay tuned for <a href="http://myronmars.to/n/dev-blog/2013/07/the-plan-for-rspec-3">RSpec3</a>
-when <code>as_null_object</code> doubles will be smart enough to only stub matching
-messages.  Or check out one of the many plugins:
-<a href="https://github.com/xaviershay/rspec-fire"><code>rspec-fire</code></a>,
-<a href="https://github.com/psyho/bogus"><code>bogus</code></a>, and
-<a href="https://github.com/ryanong/spy"><code>spy</code></a>.</p>
-
-		
-		
-	</div>
-
-<div class="meta">
-	
-</div>
-</article>
-
 <nav id="pagenavi">
     
     
@@ -815,7 +875,7 @@ messages.  Or check out one of the many plugins:
     <footer id="footer">
     <div style="display:inline">
   <p>
-    Copyright &copy; 2013
+    Copyright &copy; 2014
 
     Aaron Kromer
 .
