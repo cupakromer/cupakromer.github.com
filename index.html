@@ -6,8 +6,10 @@
 	<title>Aaron Kromer's Blog</title>
     <meta name="author" content="Aaron Kromer">
     
-	<meta name="description" content="Published on: Feb 6th, 2014 Tags: retroruby, ruby While at RetroRuby 2014 a very good question was asked
-in the newbie track. The following code &hellip;">
+	<meta name="description" content="Published on: Feb 17th, 2014 Tags: ruby, script, testing Check out the full Testing Scripts with Load series:
+part 1,
+part 2,
+part 3 Scope Smashing &hellip;">
 	
 	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 
@@ -109,6 +111,140 @@ in the newbie track. The following code &hellip;">
 <!-- begin toload --> 
     <div id="content" class="inner">
         
+
+
+    <article class="post">
+	<h2 class="title">
+		
+		<a href="/blog/2014-02-17-pitfalls-of-testing-scripts-with-load-part-2.html">
+		
+			Pitfalls of Testing Scripts With Load - Part 2</a>
+	</h2>
+    <div class="entry-content">
+    <div class="meta">
+      <div class="date">Published on: 
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-02-17T10:15:00-05:00" pubdate data-updated="true">Feb 17<span>th</span>, 2014</time></div>
+      <div class="tags">Tags: 
+
+
+	<a class='category' href='/blog/categories/ruby/'>ruby</a>, <a class='category' href='/blog/categories/script/'>script</a>, <a class='category' href='/blog/categories/testing/'>testing</a>
+
+
+</div>
+    </div>
+		<p><small>
+<em>Check out the full Testing Scripts with Load series:
+<a href="http://aaronkromer.com/blog/2013-07-11-testing-scripts-with-load.html">part 1</a>,
+<a href="http://aaronkromer.com/blog/2013-07-29-pitfalls-of-testing-scripts-with-load-part-1.html">part 2</a>,
+<a href="http://aaronkromer.com/blog/2014-02-17-pitfalls-of-testing-scripts-with-load-part-2.html">part 3</a></em>
+</small></p>
+
+<h2>Scope Smashing</h2>
+
+<p>Take the following script and spec:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="c1">#!/usr/bin/env ruby</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">def</span> <span class="nf">current_user</span>
+</span><span class='line'>  <span class="s1">&#39;Bob&#39;</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="nb">require</span> <span class="s1">&#39;spec_helper&#39;</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">def</span> <span class="nf">current_user</span>
+</span><span class='line'>  <span class="s1">&#39;Alice&#39;</span>
+</span><span class='line'><span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">describe</span> <span class="s1">&#39;Running the server locally&#39;</span> <span class="k">do</span>
+</span><span class='line'>  <span class="n">it</span> <span class="s1">&#39;logs that it is running&#39;</span> <span class="k">do</span>
+</span><span class='line'>    <span class="nb">load</span> <span class="s1">&#39;script/current-user-smash&#39;</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">expect</span><span class="p">(</span><span class="n">current_user</span><span class="p">)</span><span class="o">.</span><span class="n">to</span> <span class="n">eq</span> <span class="s1">&#39;Alice&#39;</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Alas, the spec fails with:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="ss">expected</span><span class="p">:</span> <span class="s2">&quot;Alice&quot;</span>
+</span><span class='line'>     <span class="ss">got</span><span class="p">:</span> <span class="s2">&quot;Bob&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>This is due to how <a href="http://ruby-doc.org/core-2.1.0/Kernel.html#method-i-load"><code>load</code></a> works:</p>
+
+<blockquote><p>If the optional <code>wrap</code> parameter is <code>true</code>, the loaded script will be
+executed under an anonymous module, protecting the calling program’s global
+namespace. In no circumstance will any local variables in the loaded file be
+propagated to the loading environment.</p></blockquote>
+
+<p>While it is easy to spot the issue this time, that&#8217;s not normally the case.
+Say if the additional method is define by a gem or in supporting file. Or if
+you are testing multiple scripts that each define the same top-level methods.
+These conditions will result in very strange and difficult to debug failures.
+Of course, it&#8217;s always a good idea to not define top-level methods to begin
+with.</p>
+
+<p>Instead always pass the additional <code>wrap</code> parameter. Here I&#8217;ve named it as a
+descriptive inline variable to reveal it&#8217;s intent:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">it</span> <span class="s1">&#39;logs that it is running&#39;</span> <span class="k">do</span>
+</span><span class='line'>  <span class="nb">load</span> <span class="s1">&#39;script/current-user-smash&#39;</span><span class="p">,</span> <span class="n">_in_sandbox</span> <span class="o">=</span> <span class="kp">true</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">expect</span><span class="p">(</span><span class="n">current_user</span><span class="p">)</span><span class="o">.</span><span class="n">to</span> <span class="n">eq</span> <span class="s1">&#39;Alice&#39;</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+		
+		
+	</div>
+
+<div class="meta">
+	
+</div>
+</article>
 
 
     <article class="post">
@@ -535,9 +671,16 @@ If you wish to symlink it instead <a href="http://stackoverflow.com/questions/95
 
 </div>
     </div>
-		<p>Previously it was shown how to <a href="http://aaronkromer.com/blog/2013-07-11-testing-scripts-with-load.html">use load to test scripts</a>. As with all techniques, there are some drawbacks to using <code>load</code>.</p>
+		<p><small>
+<em>Check out the full Testing Scripts with Load series:
+<a href="http://aaronkromer.com/blog/2013-07-11-testing-scripts-with-load.html">part 1</a>,
+<a href="http://aaronkromer.com/blog/2013-07-29-pitfalls-of-testing-scripts-with-load-part-1.html">part 2</a>,
+<a href="http://aaronkromer.com/blog/2014-02-17-pitfalls-of-testing-scripts-with-load-part-2.html">part 3</a></em>
+</small></p>
 
-<h3>Hidden Require Dependency</h3>
+<p>Previously it was shown how to <a href="http://aaronkromer.com/blog/2013-07-11-testing-scripts-with-load.html">use load to test scripts</a>. As with all techniques, there are some drawbacks to using <code>load</code>.</p>
+
+<h2>Hidden Require Dependency</h2>
 
 <p>Take script:</p>
 
@@ -750,109 +893,6 @@ as a simple composed method using an existing matcher:</p>
 </span><span class='line'><span class="k">end</span>
 </span></code></pre></td></tr></table></div></figure>
 
-
-		
-		
-	</div>
-
-<div class="meta">
-	
-</div>
-</article>
-
-
-    <article class="post">
-	<h2 class="title">
-		
-		<a href="/blog/2013-07-24-monitoring-specific-messages-in-rspec-part-2.html">
-		
-			Monitoring Specific Messages in RSpec Part 2</a>
-	</h2>
-    <div class="entry-content">
-    <div class="meta">
-      <div class="date">Published on: 
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2013-07-24T10:11:00-04:00" pubdate data-updated="true">Jul 24<span>th</span>, 2013</time></div>
-      <div class="tags">Tags: 
-
-
-	<a class='category' href='/blog/categories/rspec/'>rspec</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
-
-
-</div>
-    </div>
-		<p><a href="http://aaronkromer.com/blog/2013-07-17-monitoring-specific-messages-in-rspec.html">Last time</a> it was demonstrated how it is possible to monitor only a desired
-message expectations. While that technique is useful for a vast majority of
-use cases, sometimes you need a bit more complexity.</p>
-
-<p>Say for example, the desire is to verify the state of the provided parameter.
-As in this very contrived example (<em>Update: 2013-07-28 Paired down example to
-only show test and not implementation</em>):</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">describe</span> <span class="no">Factory</span> <span class="k">do</span>
-</span><span class='line'>  <span class="n">context</span> <span class="s1">&#39;making sure current stock is ready&#39;</span> <span class="k">do</span>
-</span><span class='line'>    <span class="n">it</span> <span class="s1">&#39;only fixes broken widgets&#39;</span> <span class="k">do</span>
-</span><span class='line'>      <span class="c1"># Setup code</span>
-</span><span class='line'>
-</span><span class='line'>      <span class="n">states</span> <span class="o">=</span> <span class="o">[]</span>
-</span><span class='line'>      <span class="n">expect</span><span class="p">(</span><span class="n">mechanic</span><span class="p">)</span><span class="o">.</span><span class="n">to</span> <span class="n">receive</span><span class="p">(</span><span class="ss">:fix</span><span class="p">)</span> <span class="k">do</span> <span class="o">|</span><span class="n">widget</span><span class="o">|</span>
-</span><span class='line'>        <span class="n">states</span> <span class="o">&lt;&lt;</span> <span class="n">widget</span><span class="o">.</span><span class="n">broken?</span>
-</span><span class='line'>      <span class="k">end</span>
-</span><span class='line'>
-</span><span class='line'>      <span class="n">expect</span><span class="p">{</span> <span class="n">factory</span><span class="o">.</span><span class="n">perform_maintenance</span> <span class="p">}</span><span class="o">.</span><span class="n">to</span> <span class="n">change</span><span class="p">{</span><span class="n">states</span><span class="p">}</span><span class="o">.</span><span class="n">to</span> <span class="o">[</span><span class="kp">true</span><span class="o">]</span>
-</span><span class='line'>    <span class="k">end</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>This leverages the <a href="https://www.relishapp.com/rspec/rspec-mocks/v/2-14/docs/method-stubs/stub-with-substitute-implementation">stub with substitute implementation</a>
-provided by RSpec mocks. It can also be used with the <code>allow</code> syntax.</p>
-
-<p>While the above version has it&#8217;s uses, it tends to hide some of the intent in
-the closure manipulation. A slightly more expressive method is just to add
-the state expectation in the block:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">expect</span><span class="p">(</span><span class="n">mechanic</span><span class="p">)</span><span class="o">.</span><span class="n">to</span> <span class="n">receive</span><span class="p">(</span><span class="ss">:fix</span><span class="p">)</span> <span class="k">do</span> <span class="o">|</span><span class="n">widget</span><span class="o">|</span>
-</span><span class='line'>  <span class="n">expect</span><span class="p">(</span><span class="n">widget</span><span class="p">)</span><span class="o">.</span><span class="n">to</span> <span class="n">be_broken</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>This last technique is great for setting up generic message stubs which require
-that something with specific state is provided. By adding it to a generic
-<code>allow</code>, it ensures when the contract is broken anywhere in the code under test,
-the test will properly fail. (<em>Update 2013-07-30: seems there is an
-<a href="https://github.com/rspec/rspec-mocks/pull/382">issue</a> with this technique when
-combined with
-<a href="https://www.relishapp.com/rspec/rspec-mocks/v/2-14/docs/message-expectations/calling-the-original-method"><code>and_call_original</code></a></em>)</p>
 
 		
 		

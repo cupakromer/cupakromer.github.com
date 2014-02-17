@@ -4,7 +4,7 @@
   <title><![CDATA[Category: ruby | Aaron Kromer's Blog]]></title>
   <link href="http://cupakromer.github.com/blog/categories/ruby/atom.xml" rel="self"/>
   <link href="http://cupakromer.github.com/"/>
-  <updated>2014-02-06T15:55:26-05:00</updated>
+  <updated>2014-02-17T10:31:39-05:00</updated>
   <id>http://cupakromer.github.com/</id>
   <author>
     <name><![CDATA[Aaron Kromer]]></name>
@@ -12,6 +12,82 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Pitfalls of Testing Scripts With Load - Part 2]]></title>
+    <link href="http://cupakromer.github.com/blog/2014-02-17-pitfalls-of-testing-scripts-with-load-part-2.html"/>
+    <updated>2014-02-17T10:15:00-05:00</updated>
+    <id>http://cupakromer.github.com/blog/pitfalls-of-testing-scripts-with-load-part-2</id>
+    <content type="html"><![CDATA[<p>File /Users/aaron/dev/cupakromer/cupakromer.github.com/source/<em>posts/</em>pitfalls_of_test_load_posts.md could not be found</p>
+
+<h2>Scope Smashing</h2>
+
+<p>Take the following script and spec:</p>
+
+<p>```ruby</p>
+
+<h1>!/usr/bin/env ruby</h1>
+
+<p>def current_user
+  'Bob'
+end
+```</p>
+
+<p>```ruby
+require 'spec_helper'</p>
+
+<p>def current_user
+  'Alice'
+end</p>
+
+<p>describe 'Running the server locally' do
+  it 'logs that it is running' do</p>
+
+<pre><code>load 'script/current-user-smash'
+
+expect(current_user).to eq 'Alice'
+</code></pre>
+
+<p>  end
+end
+```</p>
+
+<p>Alas, the spec fails with:</p>
+
+<p>```
+expected: "Alice"</p>
+
+<pre><code> got: "Bob"
+</code></pre>
+
+<p>```</p>
+
+<p>This is due to how <a href="http://ruby-doc.org/core-2.1.0/Kernel.html#method-i-load"><code>load</code></a> works:</p>
+
+<blockquote><p>If the optional <code>wrap</code> parameter is <code>true</code>, the loaded script will be
+executed under an anonymous module, protecting the calling program’s global
+namespace. In no circumstance will any local variables in the loaded file be
+propagated to the loading environment.</p></blockquote>
+
+<p>While it is easy to spot the issue this time, that's not normally the case.
+Say if the additional method is define by a gem or in supporting file. Or if
+you are testing multiple scripts that each define the same top-level methods.
+These conditions will result in very strange and difficult to debug failures.
+Of course, it's always a good idea to not define top-level methods to begin
+with.</p>
+
+<p>Instead always pass the additional <code>wrap</code> parameter. Here I've named it as a
+descriptive inline variable to reveal it's intent:</p>
+
+<p>```ruby
+it 'logs that it is running' do
+  load 'script/current-user-smash', _in_sandbox = true</p>
+
+<p>  expect(current_user).to eq 'Alice'
+end
+```</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Discussion about open classes and monkey patching at #retroruby]]></title>
@@ -312,9 +388,11 @@ $ RAILS_ENV=live rake redo_all_the_things[config-fun-edition.yml]
     <link href="http://cupakromer.github.com/blog/2013-07-29-pitfalls-of-testing-scripts-with-load-part-1.html"/>
     <updated>2013-07-29T13:29:00-04:00</updated>
     <id>http://cupakromer.github.com/blog/pitfalls-of-testing-scripts-with-load-part-1</id>
-    <content type="html"><![CDATA[<p>Previously it was shown how to <a href="http://aaronkromer.com/blog/2013-07-11-testing-scripts-with-load.html">use load to test scripts</a>. As with all techniques, there are some drawbacks to using <code>load</code>.</p>
+    <content type="html"><![CDATA[<p>File /Users/aaron/dev/cupakromer/cupakromer.github.com/source/<em>posts/</em>pitfalls_of_test_load_posts.md could not be found</p>
 
-<h3>Hidden Require Dependency</h3>
+<p>Previously it was shown how to <a href="http://aaronkromer.com/blog/2013-07-11-testing-scripts-with-load.html">use load to test scripts</a>. As with all techniques, there are some drawbacks to using <code>load</code>.</p>
+
+<h2>Hidden Require Dependency</h2>
 
 <p>Take script:</p>
 
@@ -461,62 +539,6 @@ def something_broken
   be_broken   # Note: Not all built in matchers have == aliases yet
 end
 </code></p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Monitoring Specific Messages in RSpec Part 2]]></title>
-    <link href="http://cupakromer.github.com/blog/2013-07-24-monitoring-specific-messages-in-rspec-part-2.html"/>
-    <updated>2013-07-24T10:11:00-04:00</updated>
-    <id>http://cupakromer.github.com/blog/monitoring-specific-messages-in-rspec-part-2</id>
-    <content type="html"><![CDATA[<p><a href="http://aaronkromer.com/blog/2013-07-17-monitoring-specific-messages-in-rspec.html">Last time</a> it was demonstrated how it is possible to monitor only a desired
-message expectations. While that technique is useful for a vast majority of
-use cases, sometimes you need a bit more complexity.</p>
-
-<p>Say for example, the desire is to verify the state of the provided parameter.
-As in this very contrived example (<em>Update: 2013-07-28 Paired down example to
-only show test and not implementation</em>):</p>
-
-<p>```ruby
-describe Factory do
-  context 'making sure current stock is ready' do</p>
-
-<pre><code>it 'only fixes broken widgets' do
-  # Setup code
-
-  states = []
-  expect(mechanic).to receive(:fix) do |widget|
-    states &lt;&lt; widget.broken?
-  end
-
-  expect{ factory.perform_maintenance }.to change{states}.to [true]
-end
-</code></pre>
-
-<p>  end
-end
-```</p>
-
-<p>This leverages the <a href="https://www.relishapp.com/rspec/rspec-mocks/v/2-14/docs/method-stubs/stub-with-substitute-implementation">stub with substitute implementation</a>
-provided by RSpec mocks. It can also be used with the <code>allow</code> syntax.</p>
-
-<p>While the above version has it's uses, it tends to hide some of the intent in
-the closure manipulation. A slightly more expressive method is just to add
-the state expectation in the block:</p>
-
-<p><code>ruby
-expect(mechanic).to receive(:fix) do |widget|
-  expect(widget).to be_broken
-end
-</code></p>
-
-<p>This last technique is great for setting up generic message stubs which require
-that something with specific state is provided. By adding it to a generic
-<code>allow</code>, it ensures when the contract is broken anywhere in the code under test,
-the test will properly fail. (<em>Update 2013-07-30: seems there is an
-<a href="https://github.com/rspec/rspec-mocks/pull/382">issue</a> with this technique when
-combined with
-<a href="https://www.relishapp.com/rspec/rspec-mocks/v/2-14/docs/message-expectations/calling-the-original-method"><code>and_call_original</code></a></em>)</p>
 ]]></content>
   </entry>
   

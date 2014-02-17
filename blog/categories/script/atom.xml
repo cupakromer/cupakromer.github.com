@@ -4,7 +4,7 @@
   <title><![CDATA[Category: script | Aaron Kromer's Blog]]></title>
   <link href="http://cupakromer.github.com/blog/categories/script/atom.xml" rel="self"/>
   <link href="http://cupakromer.github.com/"/>
-  <updated>2014-02-06T15:55:26-05:00</updated>
+  <updated>2014-02-17T10:31:39-05:00</updated>
   <id>http://cupakromer.github.com/</id>
   <author>
     <name><![CDATA[Aaron Kromer]]></name>
@@ -14,13 +14,91 @@
 
   
   <entry>
+    <title type="html"><![CDATA[Pitfalls of Testing Scripts With Load - Part 2]]></title>
+    <link href="http://cupakromer.github.com/blog/2014-02-17-pitfalls-of-testing-scripts-with-load-part-2.html"/>
+    <updated>2014-02-17T10:15:00-05:00</updated>
+    <id>http://cupakromer.github.com/blog/pitfalls-of-testing-scripts-with-load-part-2</id>
+    <content type="html"><![CDATA[<p>File /Users/aaron/dev/cupakromer/cupakromer.github.com/source/<em>posts/</em>pitfalls_of_test_load_posts.md could not be found</p>
+
+<h2>Scope Smashing</h2>
+
+<p>Take the following script and spec:</p>
+
+<p>```ruby</p>
+
+<h1>!/usr/bin/env ruby</h1>
+
+<p>def current_user
+  'Bob'
+end
+```</p>
+
+<p>```ruby
+require 'spec_helper'</p>
+
+<p>def current_user
+  'Alice'
+end</p>
+
+<p>describe 'Running the server locally' do
+  it 'logs that it is running' do</p>
+
+<pre><code>load 'script/current-user-smash'
+
+expect(current_user).to eq 'Alice'
+</code></pre>
+
+<p>  end
+end
+```</p>
+
+<p>Alas, the spec fails with:</p>
+
+<p>```
+expected: "Alice"</p>
+
+<pre><code> got: "Bob"
+</code></pre>
+
+<p>```</p>
+
+<p>This is due to how <a href="http://ruby-doc.org/core-2.1.0/Kernel.html#method-i-load"><code>load</code></a> works:</p>
+
+<blockquote><p>If the optional <code>wrap</code> parameter is <code>true</code>, the loaded script will be
+executed under an anonymous module, protecting the calling program’s global
+namespace. In no circumstance will any local variables in the loaded file be
+propagated to the loading environment.</p></blockquote>
+
+<p>While it is easy to spot the issue this time, that's not normally the case.
+Say if the additional method is define by a gem or in supporting file. Or if
+you are testing multiple scripts that each define the same top-level methods.
+These conditions will result in very strange and difficult to debug failures.
+Of course, it's always a good idea to not define top-level methods to begin
+with.</p>
+
+<p>Instead always pass the additional <code>wrap</code> parameter. Here I've named it as a
+descriptive inline variable to reveal it's intent:</p>
+
+<p>```ruby
+it 'logs that it is running' do
+  load 'script/current-user-smash', _in_sandbox = true</p>
+
+<p>  expect(current_user).to eq 'Alice'
+end
+```</p>
+]]></content>
+  </entry>
+  
+  <entry>
     <title type="html"><![CDATA[Pitfalls of Testing Scripts With Load - Part 1]]></title>
     <link href="http://cupakromer.github.com/blog/2013-07-29-pitfalls-of-testing-scripts-with-load-part-1.html"/>
     <updated>2013-07-29T13:29:00-04:00</updated>
     <id>http://cupakromer.github.com/blog/pitfalls-of-testing-scripts-with-load-part-1</id>
-    <content type="html"><![CDATA[<p>Previously it was shown how to <a href="http://aaronkromer.com/blog/2013-07-11-testing-scripts-with-load.html">use load to test scripts</a>. As with all techniques, there are some drawbacks to using <code>load</code>.</p>
+    <content type="html"><![CDATA[<p>File /Users/aaron/dev/cupakromer/cupakromer.github.com/source/<em>posts/</em>pitfalls_of_test_load_posts.md could not be found</p>
 
-<h3>Hidden Require Dependency</h3>
+<p>Previously it was shown how to <a href="http://aaronkromer.com/blog/2013-07-11-testing-scripts-with-load.html">use load to test scripts</a>. As with all techniques, there are some drawbacks to using <code>load</code>.</p>
+
+<h2>Hidden Require Dependency</h2>
 
 <p>Take script:</p>
 
@@ -77,7 +155,9 @@ it is required by the spec.</p>
     <link href="http://cupakromer.github.com/blog/2013-07-11-testing-scripts-with-load.html"/>
     <updated>2013-07-11T12:44:00-04:00</updated>
     <id>http://cupakromer.github.com/blog/testing-scripts-with-load</id>
-    <content type="html"><![CDATA[<p>A standard method for testing Ruby scripts is to shell out to the script using
+    <content type="html"><![CDATA[<p>File /Users/aaron/dev/cupakromer/cupakromer.github.com/source/<em>posts/</em>pitfalls_of_test_load_posts.md could not be found</p>
+
+<p>A standard method for testing Ruby scripts is to shell out to the script using
 <a href="http://ruby-doc.org/core-2.0/Kernel.html#method-i-60"><code>Kernel#`</code></a>
 or <a href="http://ruby-doc.org/core-2.0/Kernel.html#method-i-system"><code>Kernel#system</code></a>.
 Both of these follow a <a href="http://ruby-doc.org/core-2.0/Kernel.html#method-i-fork"><code>fork</code></a>

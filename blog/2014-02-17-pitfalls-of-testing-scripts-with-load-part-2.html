@@ -3,13 +3,18 @@
 <html>
 <head>
 	<meta charset="utf-8">
-	<title>Pitfalls of Testing Scripts With Load - Part 1 - Aaron Kromer's Blog</title>
+	<title>Pitfalls of Testing Scripts With Load - Part 2 - Aaron Kromer's Blog</title>
     <meta name="author" content="Aaron Kromer">
     
 	<meta name="description" content="Check out the full Testing Scripts with Load series:
 part 1,
 part 2,
-part 3 Previously it was shown how to use load to test scripts. As with all &hellip;">
+part 3 Scope Smashing Take the following script and spec: 1
+2
+3
+4
+5
+#!/usr/bin/ &hellip;">
 	
 	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 
@@ -111,7 +116,7 @@ part 3 Previously it was shown how to use load to test scripts. As with all &hel
 <!-- begin toload --> 
     <div id="content" class="inner">
         <article class="post">
-	<h2 class="title">Pitfalls of Testing Scripts With Load - Part 1</h2>
+	<h2 class="title">Pitfalls of Testing Scripts With Load - Part 2</h2>
 	<div class="entry-content"><p><small>
 <em>Check out the full Testing Scripts with Load series:
 <a href="http://aaronkromer.com/blog/2013-07-11-testing-scripts-with-load.html">part 1</a>,
@@ -119,32 +124,24 @@ part 3 Previously it was shown how to use load to test scripts. As with all &hel
 <a href="http://aaronkromer.com/blog/2014-02-17-pitfalls-of-testing-scripts-with-load-part-2.html">part 3</a></em>
 </small></p>
 
-<p>Previously it was shown how to <a href="http://aaronkromer.com/blog/2013-07-11-testing-scripts-with-load.html">use load to test scripts</a>. As with all techniques, there are some drawbacks to using <code>load</code>.</p>
+<h2>Scope Smashing</h2>
 
-<h2>Hidden Require Dependency</h2>
-
-<p>Take script:</p>
+<p>Take the following script and spec:</p>
 
 <figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
 <span class='line-number'>2</span>
 <span class='line-number'>3</span>
 <span class='line-number'>4</span>
 <span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
 </pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="c1">#!/usr/bin/env ruby</span>
-</span><span class='line'><span class="vg">$:</span><span class="o">.</span><span class="n">unshift</span> <span class="no">File</span><span class="o">.</span><span class="n">join</span> <span class="no">File</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="bp">__FILE__</span><span class="p">),</span> <span class="s2">&quot;..&quot;</span><span class="p">,</span> <span class="s2">&quot;lib&quot;</span>
 </span><span class='line'>
-</span><span class='line'><span class="nb">require</span> <span class="s1">&#39;local_server&#39;</span>
-</span><span class='line'>
-</span><span class='line'><span class="n">logger</span> <span class="o">=</span> <span class="no">Logger</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="vg">$stderr</span><span class="p">)</span>
-</span><span class='line'>
-</span><span class='line'><span class="no">LocalServer</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">logger</span><span class="p">)</span><span class="o">.</span><span class="n">run</span>
+</span><span class='line'><span class="k">def</span> <span class="nf">current_user</span>
+</span><span class='line'>  <span class="s1">&#39;Bob&#39;</span>
+</span><span class='line'><span class="k">end</span>
 </span></code></pre></td></tr></table></div></figure>
 
 
-<p>and passing spec:</p>
+
 
 <figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
 <span class='line-number'>2</span>
@@ -160,33 +157,59 @@ part 3 Previously it was shown how to use load to test scripts. As with all &hel
 <span class='line-number'>12</span>
 <span class='line-number'>13</span>
 </pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="nb">require</span> <span class="s1">&#39;spec_helper&#39;</span>
-</span><span class='line'><span class="nb">require</span> <span class="s1">&#39;logger&#39;</span>
-</span><span class='line'><span class="nb">require</span> <span class="s1">&#39;stringio&#39;</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">def</span> <span class="nf">current_user</span>
+</span><span class='line'>  <span class="s1">&#39;Alice&#39;</span>
+</span><span class='line'><span class="k">end</span>
 </span><span class='line'>
 </span><span class='line'><span class="n">describe</span> <span class="s1">&#39;Running the server locally&#39;</span> <span class="k">do</span>
 </span><span class='line'>  <span class="n">it</span> <span class="s1">&#39;logs that it is running&#39;</span> <span class="k">do</span>
-</span><span class='line'>    <span class="n">io</span> <span class="o">=</span> <span class="no">StringIO</span><span class="o">.</span><span class="n">new</span>
-</span><span class='line'>    <span class="n">allow</span><span class="p">(</span><span class="no">Logger</span><span class="p">)</span><span class="o">.</span><span class="n">to</span> <span class="n">receive</span><span class="p">(</span><span class="ss">:new</span><span class="p">)</span><span class="o">.</span><span class="n">and_return</span><span class="p">(</span><span class="no">Logger</span><span class="o">.</span><span class="n">new</span> <span class="n">io</span><span class="p">)</span>
+</span><span class='line'>    <span class="nb">load</span> <span class="s1">&#39;script/current-user-smash&#39;</span>
 </span><span class='line'>
-</span><span class='line'>    <span class="n">expect</span><span class="p">{</span> <span class="nb">load</span> <span class="s1">&#39;script/local-server&#39;</span> <span class="p">}</span><span class="o">.</span><span class="n">to</span> <span class="n">change</span><span class="p">{</span> <span class="n">io</span><span class="o">.</span><span class="n">string</span> <span class="p">}</span>
-</span><span class='line'>      <span class="o">.</span><span class="n">to</span> <span class="kp">include</span> <span class="s1">&#39;SERVER: starting up&#39;</span>
+</span><span class='line'>    <span class="n">expect</span><span class="p">(</span><span class="n">current_user</span><span class="p">)</span><span class="o">.</span><span class="n">to</span> <span class="n">eq</span> <span class="s1">&#39;Alice&#39;</span>
 </span><span class='line'>  <span class="k">end</span>
 </span><span class='line'><span class="k">end</span>
 </span></code></pre></td></tr></table></div></figure>
 
 
-<p>However, when the script is run standalone, it errors with:</p>
+<p>Alas, the spec fails with:</p>
 
 <figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">uninitialized</span> <span class="n">constant</span> <span class="no">Logger</span> <span class="p">(</span><span class="no">NameError</span><span class="p">)</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="ss">expected</span><span class="p">:</span> <span class="s2">&quot;Alice&quot;</span>
+</span><span class='line'>     <span class="ss">got</span><span class="p">:</span> <span class="s2">&quot;Bob&quot;</span>
 </span></code></pre></td></tr></table></div></figure>
 
 
-<p>Be aware that since <a href="http://ruby-doc.org/core-2.0/Kernel.html#method-i-load"><code>load</code></a>
-happens in the current spec context, a missing <code>require</code> may not be noticed if
-it is required by the spec.</p>
+<p>This is due to how <a href="http://ruby-doc.org/core-2.1.0/Kernel.html#method-i-load"><code>load</code></a> works:</p>
 
-<p>Whenever possible have at least one test that shells out as a sanity check.</p>
+<blockquote><p>If the optional <code>wrap</code> parameter is <code>true</code>, the loaded script will be
+executed under an anonymous module, protecting the calling program’s global
+namespace. In no circumstance will any local variables in the loaded file be
+propagated to the loading environment.</p></blockquote>
+
+<p>While it is easy to spot the issue this time, that&#8217;s not normally the case.
+Say if the additional method is define by a gem or in supporting file. Or if
+you are testing multiple scripts that each define the same top-level methods.
+These conditions will result in very strange and difficult to debug failures.
+Of course, it&#8217;s always a good idea to not define top-level methods to begin
+with.</p>
+
+<p>Instead always pass the additional <code>wrap</code> parameter. Here I&#8217;ve named it as a
+descriptive inline variable to reveal it&#8217;s intent:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">it</span> <span class="s1">&#39;logs that it is running&#39;</span> <span class="k">do</span>
+</span><span class='line'>  <span class="nb">load</span> <span class="s1">&#39;script/current-user-smash&#39;</span><span class="p">,</span> <span class="n">_in_sandbox</span> <span class="o">=</span> <span class="kp">true</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">expect</span><span class="p">(</span><span class="n">current_user</span><span class="p">)</span><span class="o">.</span><span class="n">to</span> <span class="n">eq</span> <span class="s1">&#39;Alice&#39;</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
 </div>
 
 <div class="meta">

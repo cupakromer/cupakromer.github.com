@@ -6,7 +6,8 @@
 	<title>Aaron Kromer's Blog</title>
     <meta name="author" content="Aaron Kromer">
     
-	<meta name="description" content="Published on: Jul 17th, 2013 Tags: rspec, ruby A common question I see asked in the #rspec IRC channel is: How do I verify only a specific message &hellip;">
+	<meta name="description" content="Published on: Jul 24th, 2013 Tags: rspec, ruby Last time it was demonstrated how it is possible to monitor only a desired
+message expectations. &hellip;">
 	
 	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 
@@ -108,6 +109,109 @@
 <!-- begin toload --> 
     <div id="content" class="inner">
         
+
+
+    <article class="post">
+	<h2 class="title">
+		
+		<a href="/blog/2013-07-24-monitoring-specific-messages-in-rspec-part-2.html">
+		
+			Monitoring Specific Messages in RSpec Part 2</a>
+	</h2>
+    <div class="entry-content">
+    <div class="meta">
+      <div class="date">Published on: 
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-07-24T10:11:00-04:00" pubdate data-updated="true">Jul 24<span>th</span>, 2013</time></div>
+      <div class="tags">Tags: 
+
+
+	<a class='category' href='/blog/categories/rspec/'>rspec</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
+
+
+</div>
+    </div>
+		<p><a href="http://aaronkromer.com/blog/2013-07-17-monitoring-specific-messages-in-rspec.html">Last time</a> it was demonstrated how it is possible to monitor only a desired
+message expectations. While that technique is useful for a vast majority of
+use cases, sometimes you need a bit more complexity.</p>
+
+<p>Say for example, the desire is to verify the state of the provided parameter.
+As in this very contrived example (<em>Update: 2013-07-28 Paired down example to
+only show test and not implementation</em>):</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">describe</span> <span class="no">Factory</span> <span class="k">do</span>
+</span><span class='line'>  <span class="n">context</span> <span class="s1">&#39;making sure current stock is ready&#39;</span> <span class="k">do</span>
+</span><span class='line'>    <span class="n">it</span> <span class="s1">&#39;only fixes broken widgets&#39;</span> <span class="k">do</span>
+</span><span class='line'>      <span class="c1"># Setup code</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="n">states</span> <span class="o">=</span> <span class="o">[]</span>
+</span><span class='line'>      <span class="n">expect</span><span class="p">(</span><span class="n">mechanic</span><span class="p">)</span><span class="o">.</span><span class="n">to</span> <span class="n">receive</span><span class="p">(</span><span class="ss">:fix</span><span class="p">)</span> <span class="k">do</span> <span class="o">|</span><span class="n">widget</span><span class="o">|</span>
+</span><span class='line'>        <span class="n">states</span> <span class="o">&lt;&lt;</span> <span class="n">widget</span><span class="o">.</span><span class="n">broken?</span>
+</span><span class='line'>      <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="n">expect</span><span class="p">{</span> <span class="n">factory</span><span class="o">.</span><span class="n">perform_maintenance</span> <span class="p">}</span><span class="o">.</span><span class="n">to</span> <span class="n">change</span><span class="p">{</span><span class="n">states</span><span class="p">}</span><span class="o">.</span><span class="n">to</span> <span class="o">[</span><span class="kp">true</span><span class="o">]</span>
+</span><span class='line'>    <span class="k">end</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>This leverages the <a href="https://www.relishapp.com/rspec/rspec-mocks/v/2-14/docs/method-stubs/stub-with-substitute-implementation">stub with substitute implementation</a>
+provided by RSpec mocks. It can also be used with the <code>allow</code> syntax.</p>
+
+<p>While the above version has it&#8217;s uses, it tends to hide some of the intent in
+the closure manipulation. A slightly more expressive method is just to add
+the state expectation in the block:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">expect</span><span class="p">(</span><span class="n">mechanic</span><span class="p">)</span><span class="o">.</span><span class="n">to</span> <span class="n">receive</span><span class="p">(</span><span class="ss">:fix</span><span class="p">)</span> <span class="k">do</span> <span class="o">|</span><span class="n">widget</span><span class="o">|</span>
+</span><span class='line'>  <span class="n">expect</span><span class="p">(</span><span class="n">widget</span><span class="p">)</span><span class="o">.</span><span class="n">to</span> <span class="n">be_broken</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>This last technique is great for setting up generic message stubs which require
+that something with specific state is provided. By adding it to a generic
+<code>allow</code>, it ensures when the contract is broken anywhere in the code under test,
+the test will properly fail. (<em>Update 2013-07-30: seems there is an
+<a href="https://github.com/rspec/rspec-mocks/pull/382">issue</a> with this technique when
+combined with
+<a href="https://www.relishapp.com/rspec/rspec-mocks/v/2-14/docs/message-expectations/calling-the-original-method"><code>and_call_original</code></a></em>)</p>
+
+		
+		
+	</div>
+
+<div class="meta">
+	
+</div>
+</article>
 
 
     <article class="post">
@@ -293,7 +397,14 @@ messages.  Or check out one of the many plugins:
 
 </div>
     </div>
-		<p>A standard method for testing Ruby scripts is to shell out to the script using
+		<p><small>
+<em>Check out the full Testing Scripts with Load series:
+<a href="http://aaronkromer.com/blog/2013-07-11-testing-scripts-with-load.html">part 1</a>,
+<a href="http://aaronkromer.com/blog/2013-07-29-pitfalls-of-testing-scripts-with-load-part-1.html">part 2</a>,
+<a href="http://aaronkromer.com/blog/2014-02-17-pitfalls-of-testing-scripts-with-load-part-2.html">part 3</a></em>
+</small></p>
+
+<p>A standard method for testing Ruby scripts is to shell out to the script using
 <a href="http://ruby-doc.org/core-2.0/Kernel.html#method-i-60"><code>Kernel#`</code></a>
 or <a href="http://ruby-doc.org/core-2.0/Kernel.html#method-i-system"><code>Kernel#system</code></a>.
 Both of these follow a <a href="http://ruby-doc.org/core-2.0/Kernel.html#method-i-fork"><code>fork</code></a>
@@ -1223,409 +1334,6 @@ this case you <em>must</em> use the explicit receiver <code>self</code>.</p>
 message ending in <code>=</code>, you will instead create a local variable with
 that name. This is then the reference point for the rest of the method
 body.</p>
-
-		
-		
-	</div>
-
-<div class="meta">
-	
-</div>
-</article>
-
-
-    <article class="post">
-	<h2 class="title">
-		
-		<a href="/blog/2012-12-09-how-basic-rspec-works-simplified.html">
-		
-			How Basic RSpec Works - Simplified</a>
-	</h2>
-    <div class="entry-content">
-    <div class="meta">
-      <div class="date">Published on: 
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2012-12-09T20:15:00-05:00" pubdate data-updated="true">Dec 9<span>th</span>, 2012</time></div>
-      <div class="tags">Tags: 
-
-
-	<a class='category' href='/blog/categories/rspec/'>rspec</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
-
-
-</div>
-    </div>
-		<p>Recently, I had the privilege of giving a talk regarding
-<a href="http://rspec.info">RSpec</a> at the
-<a href="http://www.meetup.com/Arlington-Ruby/">Arlington Ruby</a> meetup group.
-The talk was about RSpec and how you can take some next steps with it
-(slides here: <a href="http://rspec-next-steps.herokuapp.com">http://rspec-next-steps.herokuapp.com</a>.</p>
-
-<p>The talk was targeted at intermediate RSpec users. There were several in
-attendance whom were fairly new to RSpec. This made some of the talk
-seem like &#8220;magic&#8221;. Based on the questions I received, I wanted to take a
-moment to address some of the general workings of RSpec, in order to
-dispel any &#8220;magic&#8221; that may seem to be happening.</p>
-
-<p>It is my hope to try to show how <em>some</em> of this works. I won&#8217;t be
-covering any of the more advanced topics just yet, as the code can get a
-bit complicated, and the point here is to simplify how RSpec works. So
-bare with me and the overly simplistic implementation. The full code is
-available in the following GitHub gist:
-<a href="https://gist.github.com/4247624">https://gist.github.com/4247624</a></p>
-
-<p>First, we need to setup some methods that define the basic usage of
-RSpec: <code>describe</code>, <code>subject</code>, <code>before</code>, <code>after</code>, and <code>it</code>.</p>
-
-<p>First up is the outer <code>describe</code>:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">def</span> <span class="nf">describe</span><span class="p">(</span><span class="n">object_under_test</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">block</span><span class="p">)</span>
-</span><span class='line'>  <span class="vi">@obj_under_test</span> <span class="o">=</span> <span class="n">object_under_test</span>
-</span><span class='line'>  <span class="vi">@test_group</span>     <span class="o">=</span> <span class="n">block</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>In this example we are specifically only supporting a single <code>describe</code>
-block with no nesting. The reason here is for simplicity.  In our case
-<code>describe</code> is just a method that takes an object or description string
-and block. Nothing special. Hopefully, this helps make it clear that we
-are only dealing with a DSL for creating / setting up examples. We&#8217;ll
-store away the test object in an instance variable and keep a reference
-to the block for later.</p>
-
-<p>Next, we setup a method for gaining access to subject:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">def</span> <span class="nf">subject</span>
-</span><span class='line'>  <span class="k">if</span> <span class="vi">@obj_under_test</span><span class="o">.</span><span class="n">is_a?</span> <span class="no">Class</span>
-</span><span class='line'>    <span class="vi">@subject</span> <span class="o">||=</span> <span class="vi">@obj_under_test</span><span class="o">.</span><span class="n">new</span>
-</span><span class='line'>  <span class="k">else</span>
-</span><span class='line'>    <span class="vi">@obj_under_test</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>If our subject is a <code>class</code>, we create a new memoized instance of it.
-Otherwise, we simply return the object itself.</p>
-
-<p>Next is the commonly used <code>before</code> blocks and the associated <code>after</code>
-friend:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">def</span> <span class="nf">before</span><span class="p">(</span><span class="o">&amp;</span><span class="n">block</span><span class="p">)</span> <span class="vi">@before_hooks</span> <span class="o">&lt;&lt;</span> <span class="n">block</span> <span class="k">end</span>
-</span><span class='line'><span class="k">def</span> <span class="nf">after</span><span class="p">(</span><span class="o">&amp;</span><span class="n">block</span><span class="p">)</span>  <span class="vi">@after_hooks</span>  <span class="o">&lt;&lt;</span> <span class="n">block</span> <span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>In this simplistic implementation, it is easy to see how they work. We
-just keep a reference to all of the block in a normal array (in Ruby the
-order of insertion is preserved) for use later. We do the same with
-<code>after</code>.</p>
-
-<p>Last up, is the real meat of the examples, the <code>it</code> block:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">def</span> <span class="nf">it</span><span class="p">(</span><span class="n">description</span> <span class="o">=</span> <span class="kp">nil</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">block</span><span class="p">)</span>
-</span><span class='line'>  <span class="vi">@examples</span> <span class="o">&lt;&lt;</span> <span class="no">Example</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">description</span><span class="p">,</span> <span class="n">block</span><span class="p">)</span>
-</span><span class='line'><span class="k">end</span>
-</span><span class='line'>
-</span><span class='line'><span class="no">Example</span> <span class="o">=</span> <span class="no">Struct</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="ss">:description</span><span class="p">,</span> <span class="ss">:test</span><span class="p">)</span> <span class="k">do</span>
-</span><span class='line'>  <span class="kp">attr_accessor</span> <span class="ss">:result</span><span class="p">,</span> <span class="ss">:failure</span>
-</span><span class='line'>  <span class="k">def</span> <span class="nf">call</span>
-</span><span class='line'>    <span class="vi">@result</span> <span class="o">=</span> <span class="k">if</span> <span class="nb">test</span>
-</span><span class='line'>                <span class="k">begin</span>
-</span><span class='line'>                  <span class="nb">test</span><span class="o">.</span><span class="n">call</span>
-</span><span class='line'>                  <span class="ss">:passed</span>
-</span><span class='line'>                <span class="k">rescue</span> <span class="o">=&gt;</span> <span class="n">e</span>
-</span><span class='line'>                  <span class="vi">@failure</span> <span class="o">=</span> <span class="n">e</span>
-</span><span class='line'>                  <span class="ss">:failed</span>
-</span><span class='line'>                <span class="k">end</span>
-</span><span class='line'>              <span class="k">else</span>
-</span><span class='line'>                <span class="ss">:pending</span>
-</span><span class='line'>              <span class="k">end</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>As with the <code>describe</code> method, this takes an optional description and a
-block to execute (our actual test). We&#8217;ll need access to both of these
-later, and we&#8217;ll have multiple examples, so we&#8217;ll use a simple object to
-keep track of each.  After creating the example object, we&#8217;ll store it
-in the queue.</p>
-
-<p>At this point it is worth taking a moment to discuss <code>Example#call</code>. We
-named it <code>call</code> so that accessing it is no different than a traditional
-block. This makes it easier to change code later.</p>
-
-<p>Inside <code>Example#call</code>, we attempt to pass <code>call</code> on the block that the
-<code>Example</code> was created with. If this raises an error, we store the
-exception for access later and mark the test as <code>failed</code>. Something to
-note here is that the return value of the <code>test</code> block is ignored. A
-test is marked as <code>passed</code> as long as it does not <code>raise</code> any errors.
-This is also how RSpec behaves.</p>
-
-<p>If no block was given when we created the <code>Example</code>, then we treat it as
-<code>pending</code>.  I have omitted the <code>pending</code> method, common in RSpec due to
-the complexity it would add to this example.</p>
-
-<p>Something else to note, since this is an overly simplistic example, we
-are doing everything in the global main namespace. RSpec does <em>not</em>
-behave this way, but it helps keep our example simple. Due to this,
-we&#8217;ll need to setup some of our variables:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="vi">@before_hooks</span> <span class="o">=</span> <span class="o">[]</span>
-</span><span class='line'><span class="vi">@after_hooks</span>  <span class="o">=</span> <span class="o">[]</span>
-</span><span class='line'><span class="vi">@examples</span>     <span class="o">=</span> <span class="o">[]</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Additionally, we don&#8217;t have any matchers defined yet. To keep it simple,
-I&#8217;ll add a TestUnit style <code>assert</code> matcher.</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">def</span> <span class="nf">assert</span><span class="p">(</span><span class="n">truthy</span><span class="p">)</span>
-</span><span class='line'>  <span class="n">truthy</span> <span class="ow">or</span> <span class="k">raise</span> <span class="no">Error</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="s2">&quot;Test failed.&quot;</span><span class="p">)</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>At this point, I hope you can start to get the picture of how our
-simplified example will run.  We&#8217;ll setup our <code>run</code> as follows:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-<span class='line-number'>21</span>
-<span class='line-number'>22</span>
-<span class='line-number'>23</span>
-<span class='line-number'>24</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">def</span> <span class="nf">run</span>
-</span><span class='line'>  <span class="k">raise</span> <span class="s1">&#39;No object under test defined.&#39;</span> <span class="k">unless</span> <span class="vi">@obj_under_test</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="nb">puts</span> <span class="vi">@obj_under_test</span>
-</span><span class='line'>  <span class="k">return</span> <span class="k">unless</span> <span class="vi">@test_group</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="c1"># Find out what tests need to be run</span>
-</span><span class='line'>  <span class="vi">@test_group</span><span class="o">.</span><span class="n">call</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="c1"># Run the tests</span>
-</span><span class='line'>  <span class="vi">@examples</span><span class="o">.</span><span class="n">each_with_index</span> <span class="k">do</span> <span class="o">|</span><span class="n">example</span><span class="p">,</span> <span class="n">index</span><span class="o">|</span>
-</span><span class='line'>    <span class="vi">@subject</span> <span class="o">=</span> <span class="kp">nil</span>
-</span><span class='line'>    <span class="nb">puts</span> <span class="s2">&quot;</span><span class="se">\n\n</span><span class="s2">EXAMPLE </span><span class="si">#{</span><span class="n">index</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s2">:&quot;</span>
-</span><span class='line'>    <span class="k">begin</span>
-</span><span class='line'>      <span class="vi">@before_hooks</span><span class="o">.</span><span class="n">each</span><span class="p">(</span><span class="o">&amp;</span><span class="ss">:call</span><span class="p">)</span>
-</span><span class='line'>      <span class="n">example</span><span class="o">.</span><span class="n">call</span>
-</span><span class='line'>      <span class="nb">puts</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">    </span><span class="si">#{</span><span class="n">example</span><span class="o">.</span><span class="n">description</span><span class="si">}</span><span class="s2"> =&gt; </span><span class="si">#{</span><span class="n">example</span><span class="o">.</span><span class="n">result</span><span class="o">.</span><span class="n">upcase</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
-</span><span class='line'>    <span class="k">rescue</span> <span class="o">=&gt;</span> <span class="n">e</span>
-</span><span class='line'>      <span class="nb">puts</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">    </span><span class="si">#{</span><span class="n">example</span><span class="o">.</span><span class="n">description</span><span class="si">}</span><span class="s2"> =&gt; failed</span><span class="se">\n</span><span class="s2">&quot;</span>
-</span><span class='line'>    <span class="k">ensure</span>
-</span><span class='line'>      <span class="vi">@after_hooks</span><span class="o">.</span><span class="n">reverse_each</span><span class="p">(</span><span class="o">&amp;</span><span class="ss">:call</span><span class="p">)</span>
-</span><span class='line'>    <span class="k">end</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>If there is no object under test defined when we <code>run</code> (i.e. <code>describe</code>
-was never called) then we raise an error. Otherwise, we output the
-object under test. If this is a <code>class</code> (as is usual for a top level
-<code>describe</code> block) then we will see the class name. Otherwise, the object
-itself is output.  If it is a string, we&#8217;ll get the string value,
-otherwise, we&#8217;ll get the object&#8217;s <code>#to_s</code> representation.</p>
-
-<p><em>It should be noted that in the real RSpec this outputting is much more
-complicated and left up to various output formatters.</em></p>
-
-<p>Next we will run the <code>test_group</code> (the body of the <code>describe</code> block). This
-in turn call all our <code>before</code>, <code>after</code>, and <code>it</code> methods, which set up our
-environment and define the examples.</p>
-
-<p>All that is left, is to iterate over the examples and run them. Here I&#8217;m
-using <code>each_with_index</code> solely to be able to add some debugging output
-to make it a bit clearer how things are running. Normally, this would be
-a simple <code>each</code> iterator.</p>
-
-<p>Before each test run, we make sure we have a new empty <code>subject</code>. We
-then iterate through each of the <code>before</code> blocks in the order they were
-defined. At this point we run the example. After the example runs, I&#8217;m
-immediately
-outputting the results to keep things simple. In the real RSpec, this is
-handled by an output formatter. Finally, all of the <code>after</code> hooks are
-run, but in reverse defined order.</p>
-
-<p>It should be noted, that here, as in the real RSpec, if any of the
-<code>before</code> blocks throw an exception the test fails. However, failures in
-any <code>after</code> block are ignored.</p>
-
-<p>That&#8217;s it. We can then use this to define our sample spec:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-<span class='line-number'>21</span>
-<span class='line-number'>22</span>
-<span class='line-number'>23</span>
-<span class='line-number'>24</span>
-<span class='line-number'>25</span>
-<span class='line-number'>26</span>
-<span class='line-number'>27</span>
-<span class='line-number'>28</span>
-<span class='line-number'>29</span>
-<span class='line-number'>30</span>
-<span class='line-number'>31</span>
-<span class='line-number'>32</span>
-<span class='line-number'>33</span>
-<span class='line-number'>34</span>
-<span class='line-number'>35</span>
-<span class='line-number'>36</span>
-<span class='line-number'>37</span>
-<span class='line-number'>38</span>
-<span class='line-number'>39</span>
-<span class='line-number'>40</span>
-<span class='line-number'>41</span>
-<span class='line-number'>42</span>
-<span class='line-number'>43</span>
-<span class='line-number'>44</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Thing</span>
-</span><span class='line'>  <span class="kp">attr_reader</span> <span class="ss">:my_value</span>
-</span><span class='line'>  <span class="k">def</span> <span class="nf">initialize</span>
-</span><span class='line'>    <span class="vi">@my_value</span> <span class="o">=</span> <span class="nb">rand</span> <span class="mi">5</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span><span class='line'>
-</span><span class='line'><span class="n">describe</span> <span class="no">Thing</span> <span class="k">do</span>
-</span><span class='line'>  <span class="n">before</span> <span class="p">{</span> <span class="nb">puts</span> <span class="s2">&quot;BEFORE_BLOCK:: First before block&quot;</span> <span class="p">}</span>
-</span><span class='line'>  <span class="n">after</span> <span class="k">do</span>
-</span><span class='line'>    <span class="nb">print</span> <span class="s2">&quot;AFTER_BLOCK:: should be called last!&quot;</span>
-</span><span class='line'>    <span class="nb">print</span> <span class="s2">&quot;    Reset @tmp_value(</span><span class="si">#{</span><span class="vi">@tmp_value</span><span class="o">.</span><span class="n">inspect</span><span class="si">}</span><span class="s2">) =&gt; &quot;</span>
-</span><span class='line'>    <span class="vi">@tmp_value</span> <span class="o">=</span> <span class="kp">nil</span>
-</span><span class='line'>    <span class="nb">puts</span> <span class="s2">&quot;@tmp_value(</span><span class="si">#{</span><span class="vi">@tmp_value</span><span class="o">.</span><span class="n">inspect</span><span class="si">}</span><span class="s2">)&quot;</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="n">it</span> <span class="s1">&#39;has access to subject&#39;</span> <span class="k">do</span>
-</span><span class='line'>    <span class="nb">p</span> <span class="n">subject</span>
-</span><span class='line'>    <span class="n">assert</span> <span class="n">subject</span><span class="o">.</span><span class="n">my_value</span> <span class="o">&lt;</span> <span class="mi">5</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="n">it</span> <span class="s1">&#39;subject changes only between tests&#39;</span> <span class="k">do</span>
-</span><span class='line'>    <span class="nb">p</span> <span class="n">subject</span>
-</span><span class='line'>    <span class="n">assert</span> <span class="n">subject</span><span class="o">.</span><span class="n">equal?</span><span class="p">(</span><span class="n">subject</span><span class="p">)</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="n">it</span> <span class="s2">&quot;fails on error&quot;</span> <span class="k">do</span>
-</span><span class='line'>    <span class="k">raise</span> <span class="no">Error</span><span class="o">.</span><span class="n">new</span> <span class="s1">&#39;Sad face&#39;</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="n">it</span> <span class="s1">&#39;works!&#39;</span> <span class="k">do</span>
-</span><span class='line'>    <span class="n">assert</span> <span class="vi">@tmp_value</span> <span class="o">==</span> <span class="s1">&#39;test&#39;</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="n">before</span> <span class="k">do</span>
-</span><span class='line'>    <span class="vi">@tmp_value</span> <span class="o">=</span> <span class="s1">&#39;test&#39;</span>
-</span><span class='line'>    <span class="nb">print</span> <span class="s2">&quot;BEFORE_BLOCK:: Another before block&quot;</span>
-</span><span class='line'>    <span class="nb">puts</span> <span class="s2">&quot;     Set @tmp_value(</span><span class="si">#{</span><span class="vi">@tmp_value</span><span class="o">.</span><span class="n">inspect</span><span class="si">}</span><span class="s2">)&quot;</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="n">it</span> <span class="s1">&#39;is pending&#39;</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="n">after</span> <span class="p">{</span> <span class="nb">puts</span> <span class="s2">&quot;AFTER_BLOCK:: should be called first!!&quot;</span> <span class="p">}</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>I hope it is clear how this spec will end up running. This is not
-exactly equivalent to how RSpec will treat things (notice that we need
-to explicitly clear <code>@tmp_value</code> in an <code>after</code> block, where RSpec will
-do that for us). This is due to how RSpec creates example classses
-(which we are not using) and how it binds the blocks to different
-scopes; we are strictly using the <code>global</code> namespace to keep the example
-simple.</p>
-
-<p>Check out the gist for the code and output of the sample spec:
-<a href="http://gist.github.com/4247624">http://gist.github.com/4247624</a></p>
-
-<p>Stay tuned for more on RSpec in the future.</p>
 
 		
 		
