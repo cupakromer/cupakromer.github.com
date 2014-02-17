@@ -7,6 +7,7 @@ categories:
 - ruby
 - retroruby
 ---
+
 While at [RetroRuby 2014](http://retroruby.org) a very good question was asked
 in the newbie track. The following code sample had just been shown on some
 basic awesomeness of Ruby:
