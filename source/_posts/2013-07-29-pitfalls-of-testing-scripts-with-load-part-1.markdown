@@ -9,9 +9,11 @@ categories:
 - script
 ---
 
+{% render_partial _posts/_pitfalls_of_test_load_posts.md %}
+
 Previously it was shown how to [use load to test scripts](http://aaronkromer.com/blog/2013-07-11-testing-scripts-with-load.html). As with all techniques, there are some drawbacks to using `load`.
 
-### Hidden Require Dependency
+## Hidden Require Dependency
 
 Take script:
 

@@ -9,6 +9,8 @@ categories:
 - script
 ---
 
+{% render_partial _posts/_pitfalls_of_test_load_posts.md %}
+
 A standard method for testing Ruby scripts is to shell out to the script using
 [<code>Kernel#\`</code>](http://ruby-doc.org/core-2.0/Kernel.html#method-i-60)
 or [`Kernel#system`](http://ruby-doc.org/core-2.0/Kernel.html#method-i-system).

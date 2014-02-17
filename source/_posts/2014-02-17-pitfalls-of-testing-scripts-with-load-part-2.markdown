@@ -9,6 +9,8 @@ categories:
 - script
 ---
 
+{% render_partial _posts/_pitfalls_of_test_load_posts.md %}
+
 ## Scope Smashing
 
 Take the following script and spec:
