@@ -4,7 +4,7 @@
   <title><![CDATA[Aaron Kromer's Blog]]></title>
   <link href="http://cupakromer.github.com/atom.xml" rel="self"/>
   <link href="http://cupakromer.github.com/"/>
-  <updated>2014-02-17T10:31:39-05:00</updated>
+  <updated>2014-02-24T11:07:30-05:00</updated>
   <id>http://cupakromer.github.com/</id>
   <author>
     <name><![CDATA[Aaron Kromer]]></name>
@@ -12,6 +12,141 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Ignite Those Horrible Scripts]]></title>
+    <link href="http://cupakromer.github.com/blog/2014-02-24-ignite-those-horrible-scripts.html"/>
+    <updated>2014-02-24T11:03:00-05:00</updated>
+    <id>http://cupakromer.github.com/blog/ignite-those-horrible-scripts</id>
+    <content type="html"><![CDATA[<p>The past week was spent dealing with an infuriating data crunching task.
+<a href="https://twitter.com/crsexton">Chris</a> and I decided to celebrate by killing our
+poorly written Ruby cli scripts with fire. Printing the scripts and going out
+back to set them on fire would be more dramatic. Though it probably would be
+appreciated by the other businesses which we share space with.</p>
+
+<p>I took a breather and looked into <a href="http://www.zsh.org/">zsh</a> functions to
+accomplish this. Here&#8217;s what I came up with:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+</pre></td><td class='code'><pre><code class='sh'><span class='line'>rageflip<span class="o">()</span> <span class="o">{</span> <span class="nb">echo</span> <span class="s2">&quot; ┻━┻ ︵ヽ(\`Д´)ﾉ︵ ┻━┻  $*&quot;</span> <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>has_utility<span class="o">()</span> <span class="o">{</span> <span class="nb">hash</span> <span class="nv">$1</span> 2&gt;/dev/null <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="c"># Wrapper around `rm -rf` expressing callers loathing and disdain for the</span>
+</span><span class='line'><span class="c"># provided files.</span>
+</span><span class='line'><span class="c">#</span>
+</span><span class='line'><span class="c"># Inspiration was Homebrew&#39;s output:</span>
+</span><span class='line'><span class="c"># 🍺  /usr/local/Cellar/tmux/1.9: 15 files, 628K, built in 25 seconds</span>
+</span><span class='line'><span class="c">#</span>
+</span><span class='line'><span class="c"># For additional file stats, specific to code files, consider installing the</span>
+</span><span class='line'><span class="c"># Count Lines of Code (cloc) tool: http://cloc.sourceforge.net/</span>
+</span><span class='line'><span class="c">#</span>
+</span><span class='line'><span class="c">#   brew install cloc</span>
+</span><span class='line'><span class="c">#   sudo apt-get install cloc</span>
+</span><span class='line'><span class="c">#</span>
+</span><span class='line'>ignite<span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>  <span class="k">if</span> <span class="o">((</span> <span class="nv">$# </span><span class="o">==</span> 0 <span class="o">))</span> <span class="k">then </span><span class="nb">echo</span> <span class="s2">&quot;USAGE: ignite file [file] ...&quot;</span>; <span class="k">return</span>; <span class="k">fi</span>
+</span><span class='line'><span class="k">  </span><span class="nb">local </span>total_lines
+</span><span class='line'>  <span class="nb">local </span>human_size
+</span><span class='line'>  <span class="nb">local </span>lc_blank
+</span><span class='line'>  <span class="nb">local </span>lc_comment
+</span><span class='line'>  <span class="nb">local </span>lc_code
+</span><span class='line'>  <span class="nb">echo</span> <span class="s2">&quot;BURN IT ALL!!! $(rageflip)&quot;</span>
+</span><span class='line'>  <span class="k">for </span>i <span class="k">do</span>
+</span><span class='line'>    <span class="c"># If the file is empty we have 0 lines</span>
+</span><span class='line'>    <span class="nv">human_size</span><span class="o">=</span><span class="k">$(</span>ls -lh <span class="nv">$i</span> | awk <span class="s1">&#39;{ print $5 }&#39;</span><span class="k">)</span>
+</span><span class='line'>    <span class="nv">total_lines</span><span class="o">=</span><span class="k">${$(</span>sed -n <span class="s1">&#39;$=&#39;</span> <span class="nv">$i</span><span class="k">):-</span><span class="nv">0</span><span class="k">}</span>
+</span><span class='line'>    <span class="nv">stats</span><span class="o">=</span><span class="s2">&quot;$total_lines lines&quot;</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">if </span>has_utility cloc; <span class="k">then</span>
+</span><span class='line'>      <span class="c"># Setup some local variables regarding file stats</span>
+</span><span class='line'>      <span class="nv">lc_blank</span><span class="o">=</span>
+</span><span class='line'>      <span class="nv">lc_comment</span><span class="o">=</span>
+</span><span class='line'>      <span class="nv">lc_code</span><span class="o">=</span>
+</span><span class='line'>      <span class="nb">eval</span> <span class="k">$(</span>
+</span><span class='line'>        cloc <span class="nv">$i</span> --quiet | tail -2 | head -1 |
+</span><span class='line'>        awk <span class="s1">&#39;{ print &quot;lc_blank=&quot;$3, &quot;lc_comment=&quot;$4, &quot;lc_code=&quot;$5 }&#39;</span>
+</span><span class='line'>      <span class="k">)</span>
+</span><span class='line'>      <span class="k">if</span> <span class="o">[</span> ! -z <span class="nv">$lc_blank</span> <span class="o">]</span>; <span class="k">then</span>
+</span><span class='line'><span class="k">        </span><span class="nv">stats</span><span class="o">=</span><span class="s2">&quot;$lc_code loc, $lc_comment comments, $lc_blank whitespace lines&quot;</span>
+</span><span class='line'>      <span class="k">fi</span>
+</span><span class='line'><span class="k">    fi</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">    </span>rm -rf <span class="nv">$i</span>
+</span><span class='line'>    <span class="nb">echo</span> <span class="s2">&quot;🔥  $i: $stats, $human_size&quot;</span>
+</span><span class='line'>  <span class="k">done</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Now we can sit back and watch it all burn:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='sh'><span class='line'><span class="nv">$ </span>ignite script/crunch-*
+</span><span class='line'>BURN IT ALL!!!  ┻━┻ ︵ヽ<span class="o">(</span><span class="sb">`</span>Д´<span class="o">)</span>ﾉ︵ ┻━┻
+</span><span class='line'>🔥  script/crunch-dump-sessions: 5 loc, 5 comments, 2 whitespace lines, 330B
+</span><span class='line'>🔥  script/crunch-normalize: 47 loc, 14 comments, 11 whitespace lines, 2.2K
+</span><span class='line'>🔥  script/crunch-import-csv: 101 loc, 2 comments, 20 whitespace lines, 2.7K
+</span><span class='line'>🔥  script/crunch-timestamp: 203 loc, 44 comments, 38 whitespace lines, 8.4K
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Though at this point, it might as well be a full script file. If I do that, I
+might as well just write it as a Ruby cli&#8230;</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Pitfalls of Testing Scripts With Load - Part 2]]></title>

@@ -6,10 +6,8 @@
 	<title>Aaron Kromer's Blog</title>
     <meta name="author" content="Aaron Kromer">
     
-	<meta name="description" content="Published on: Feb 17th, 2014 Tags: ruby, script, testing Check out the full Testing Scripts with Load series:
-part 1,
-part 2,
-part 3 Scope Smashing &hellip;">
+	<meta name="description" content="Published on: Feb 24th, 2014 Tags: script, shell, zsh The past week was spent dealing with an infuriating data crunching task.
+Chris and I decided &hellip;">
 	
 	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 
@@ -111,6 +109,174 @@ part 3 Scope Smashing &hellip;">
 <!-- begin toload --> 
     <div id="content" class="inner">
         
+
+
+    <article class="post">
+	<h2 class="title">
+		
+		<a href="/blog/2014-02-24-ignite-those-horrible-scripts.html">
+		
+			Ignite Those Horrible Scripts</a>
+	</h2>
+    <div class="entry-content">
+    <div class="meta">
+      <div class="date">Published on: 
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-02-24T11:03:00-05:00" pubdate data-updated="true">Feb 24<span>th</span>, 2014</time></div>
+      <div class="tags">Tags: 
+
+
+	<a class='category' href='/blog/categories/script/'>script</a>, <a class='category' href='/blog/categories/shell/'>shell</a>, <a class='category' href='/blog/categories/zsh/'>zsh</a>
+
+
+</div>
+    </div>
+		<p>The past week was spent dealing with an infuriating data crunching task.
+<a href="https://twitter.com/crsexton">Chris</a> and I decided to celebrate by killing our
+poorly written Ruby cli scripts with fire. Printing the scripts and going out
+back to set them on fire would be more dramatic. Though it probably would be
+appreciated by the other businesses which we share space with.</p>
+
+<p>I took a breather and looked into <a href="http://www.zsh.org/">zsh</a> functions to
+accomplish this. Here&#8217;s what I came up with:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+</pre></td><td class='code'><pre><code class='sh'><span class='line'>rageflip<span class="o">()</span> <span class="o">{</span> <span class="nb">echo</span> <span class="s2">&quot; ┻━┻ ︵ヽ(\`Д´)ﾉ︵ ┻━┻  $*&quot;</span> <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>has_utility<span class="o">()</span> <span class="o">{</span> <span class="nb">hash</span> <span class="nv">$1</span> 2&gt;/dev/null <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="c"># Wrapper around `rm -rf` expressing callers loathing and disdain for the</span>
+</span><span class='line'><span class="c"># provided files.</span>
+</span><span class='line'><span class="c">#</span>
+</span><span class='line'><span class="c"># Inspiration was Homebrew&#39;s output:</span>
+</span><span class='line'><span class="c"># 🍺  /usr/local/Cellar/tmux/1.9: 15 files, 628K, built in 25 seconds</span>
+</span><span class='line'><span class="c">#</span>
+</span><span class='line'><span class="c"># For additional file stats, specific to code files, consider installing the</span>
+</span><span class='line'><span class="c"># Count Lines of Code (cloc) tool: http://cloc.sourceforge.net/</span>
+</span><span class='line'><span class="c">#</span>
+</span><span class='line'><span class="c">#   brew install cloc</span>
+</span><span class='line'><span class="c">#   sudo apt-get install cloc</span>
+</span><span class='line'><span class="c">#</span>
+</span><span class='line'>ignite<span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>  <span class="k">if</span> <span class="o">((</span> <span class="nv">$# </span><span class="o">==</span> 0 <span class="o">))</span> <span class="k">then </span><span class="nb">echo</span> <span class="s2">&quot;USAGE: ignite file [file] ...&quot;</span>; <span class="k">return</span>; <span class="k">fi</span>
+</span><span class='line'><span class="k">  </span><span class="nb">local </span>total_lines
+</span><span class='line'>  <span class="nb">local </span>human_size
+</span><span class='line'>  <span class="nb">local </span>lc_blank
+</span><span class='line'>  <span class="nb">local </span>lc_comment
+</span><span class='line'>  <span class="nb">local </span>lc_code
+</span><span class='line'>  <span class="nb">echo</span> <span class="s2">&quot;BURN IT ALL!!! $(rageflip)&quot;</span>
+</span><span class='line'>  <span class="k">for </span>i <span class="k">do</span>
+</span><span class='line'>    <span class="c"># If the file is empty we have 0 lines</span>
+</span><span class='line'>    <span class="nv">human_size</span><span class="o">=</span><span class="k">$(</span>ls -lh <span class="nv">$i</span> | awk <span class="s1">&#39;{ print $5 }&#39;</span><span class="k">)</span>
+</span><span class='line'>    <span class="nv">total_lines</span><span class="o">=</span><span class="k">${$(</span>sed -n <span class="s1">&#39;$=&#39;</span> <span class="nv">$i</span><span class="k">):-</span><span class="nv">0</span><span class="k">}</span>
+</span><span class='line'>    <span class="nv">stats</span><span class="o">=</span><span class="s2">&quot;$total_lines lines&quot;</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">if </span>has_utility cloc; <span class="k">then</span>
+</span><span class='line'>      <span class="c"># Setup some local variables regarding file stats</span>
+</span><span class='line'>      <span class="nv">lc_blank</span><span class="o">=</span>
+</span><span class='line'>      <span class="nv">lc_comment</span><span class="o">=</span>
+</span><span class='line'>      <span class="nv">lc_code</span><span class="o">=</span>
+</span><span class='line'>      <span class="nb">eval</span> <span class="k">$(</span>
+</span><span class='line'>        cloc <span class="nv">$i</span> --quiet | tail -2 | head -1 |
+</span><span class='line'>        awk <span class="s1">&#39;{ print &quot;lc_blank=&quot;$3, &quot;lc_comment=&quot;$4, &quot;lc_code=&quot;$5 }&#39;</span>
+</span><span class='line'>      <span class="k">)</span>
+</span><span class='line'>      <span class="k">if</span> <span class="o">[</span> ! -z <span class="nv">$lc_blank</span> <span class="o">]</span>; <span class="k">then</span>
+</span><span class='line'><span class="k">        </span><span class="nv">stats</span><span class="o">=</span><span class="s2">&quot;$lc_code loc, $lc_comment comments, $lc_blank whitespace lines&quot;</span>
+</span><span class='line'>      <span class="k">fi</span>
+</span><span class='line'><span class="k">    fi</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">    </span>rm -rf <span class="nv">$i</span>
+</span><span class='line'>    <span class="nb">echo</span> <span class="s2">&quot;🔥  $i: $stats, $human_size&quot;</span>
+</span><span class='line'>  <span class="k">done</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Now we can sit back and watch it all burn:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='sh'><span class='line'><span class="nv">$ </span>ignite script/crunch-*
+</span><span class='line'>BURN IT ALL!!!  ┻━┻ ︵ヽ<span class="o">(</span><span class="sb">`</span>Д´<span class="o">)</span>ﾉ︵ ┻━┻
+</span><span class='line'>🔥  script/crunch-dump-sessions: 5 loc, 5 comments, 2 whitespace lines, 330B
+</span><span class='line'>🔥  script/crunch-normalize: 47 loc, 14 comments, 11 whitespace lines, 2.2K
+</span><span class='line'>🔥  script/crunch-import-csv: 101 loc, 2 comments, 20 whitespace lines, 2.7K
+</span><span class='line'>🔥  script/crunch-timestamp: 203 loc, 44 comments, 38 whitespace lines, 8.4K
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Though at this point, it might as well be a full script file. If I do that, I
+might as well just write it as a Ruby cli&#8230;</p>
+
+		
+		
+	</div>
+
+<div class="meta">
+	
+</div>
+</article>
 
 
     <article class="post">
@@ -746,153 +912,6 @@ happens in the current spec context, a missing <code>require</code> may not be n
 it is required by the spec.</p>
 
 <p>Whenever possible have at least one test that shells out as a sanity check.</p>
-
-		
-		
-	</div>
-
-<div class="meta">
-	
-</div>
-</article>
-
-
-    <article class="post">
-	<h2 class="title">
-		
-		<a href="/blog/2013-07-26-monitoring-specific-messages-in-rspec-part-3.html">
-		
-			Monitoring Specific Messages in RSpec Part 3</a>
-	</h2>
-    <div class="entry-content">
-    <div class="meta">
-      <div class="date">Published on: 
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2013-07-26T10:13:00-04:00" pubdate data-updated="true">Jul 26<span>th</span>, 2013</time></div>
-      <div class="tags">Tags: 
-
-
-	<a class='category' href='/blog/categories/rspec/'>rspec</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
-
-
-</div>
-    </div>
-		<p>Continuing the series (
-<a href="http://aaronkromer.com/blog/2013-07-17-monitoring-specific-messages-in-rspec.html">part 1</a>,
-<a href="http://aaronkromer.com/blog/2013-07-24-monitoring-specific-messages-in-rspec-part-2.html">part 2</a>
-) on matching messages in RSpec, the next logical step is custom argument
-matchers.</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">expect</span><span class="p">(</span><span class="n">mechanic</span><span class="p">)</span><span class="o">.</span><span class="n">to</span> <span class="n">receive</span><span class="p">(</span><span class="ss">:fix</span><span class="p">)</span><span class="o">.</span><span class="n">with</span> <span class="n">something_broken</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Using the RSpec <a href="https://www.relishapp.com/rspec/rspec-expectations/v/2-14/docs/custom-matchers">matcher DSL</a>
-this could simply look like:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="ss">RSpec</span><span class="p">:</span><span class="ss">:Matchers</span><span class="o">.</span><span class="n">define</span> <span class="ss">:something_broken</span> <span class="k">do</span>
-</span><span class='line'>  <span class="n">match</span> <span class="k">do</span> <span class="o">|</span><span class="n">thing</span><span class="o">|</span>
-</span><span class='line'>    <span class="n">thing</span><span class="o">.</span><span class="n">broken?</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>That&#8217;s all there is to it. Now it can be used as both a regular matcher and as
-an argument matcher.</p>
-
-<p>If the matcher needs to be created from
-<a href="http://rubydoc.info/gems/rspec-expectations/RSpec/Matchers">scratch</a>, a
-<code>matches?</code> method must be defined instead:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">SomethingBroken</span>
-</span><span class='line'>  <span class="k">def</span> <span class="nf">matches?</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
-</span><span class='line'>    <span class="n">target</span><span class="o">.</span><span class="n">broken?</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">def</span> <span class="nf">something_broken</span>
-</span><span class='line'>  <span class="no">SomethingBroken</span><span class="o">.</span><span class="n">new</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>This works just fine as a normal matcher, however, when used as an argument
-matcher, it will always fail. The reason is that argument matchers are invoked
-with the <code>==</code> operator, which by <a href="http://ruby-doc.org/core-2.0/BasicObject.html#method-i-3D-3D">default</a>,
-verifies if the objects are the same object.</p>
-
-<p>Attempting to use a normal matcher with the
-<a href="https://www.relishapp.com/rspec/rspec-expectations/v/2-14/docs/built-in-matchers/expect-change"><code>change</code></a>
-expectation also
-<a href="https://github.com/rspec/rspec-expectations/issues/276">oddly</a> fails, due to
-<code>change</code> invoking the
-<a href="http://aaronkromer.com/blog/2012-10-12-equals-equals-equals-the-forgotten-equality.html"><code>===</code></a>
-message, not <code>matches?</code>. Since the <a href="http://ruby-doc.org/core-2.0/Object.html#method-i-3D-3D-3D">default <code>===</code> behavior is
-<code>==</code></a>, the existing
-argument matchers currently work with it.</p>
-
-<p>There is active talk / changes
-<a href="https://github.com/rspec/rspec-expectations/issues/280">happening</a> to
-standardize the matchers to <code>===</code>. This will allow for a more consistent and
-composable interface. It also has the added benefit of allowing the matchers to
-be used in more complex conditionals using <code>case</code> statements.</p>
-
-<p>To fix the class based matcher simply add the necessary alias(es):</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">SomethingBroken</span>
-</span><span class='line'>  <span class="k">def</span> <span class="nf">matches?</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
-</span><span class='line'>    <span class="n">target</span><span class="o">.</span><span class="n">broken?</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'>  <span class="n">alias_method</span> <span class="ss">:==</span><span class="p">,</span> <span class="ss">:matches?</span>
-</span><span class='line'>  <span class="n">alias_method</span> <span class="ss">:===</span><span class="p">,</span> <span class="ss">:matches?</span>  <span class="c1"># Not technically necessary due to default ==</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Note that with such a simple matcher, there is no reason it cannot be created
-as a simple composed method using an existing matcher:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">def</span> <span class="nf">something_broken</span>
-</span><span class='line'>  <span class="n">be_broken</span>   <span class="c1"># Note: Not all built in matchers have == aliases yet</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
 
 		
 		

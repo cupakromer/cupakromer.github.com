@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: shell | Aaron Kromer's Blog]]></title>
+  <link href="http://cupakromer.github.com/blog/categories/shell/atom.xml" rel="self"/>
+  <link href="http://cupakromer.github.com/"/>
+  <updated>2014-02-24T11:07:30-05:00</updated>
+  <id>http://cupakromer.github.com/</id>
+  <author>
+    <name><![CDATA[Aaron Kromer]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Ignite Those Horrible Scripts]]></title>
+    <link href="http://cupakromer.github.com/blog/2014-02-24-ignite-those-horrible-scripts.html"/>
+    <updated>2014-02-24T11:03:00-05:00</updated>
+    <id>http://cupakromer.github.com/blog/ignite-those-horrible-scripts</id>
+    <content type="html"><![CDATA[<p>The past week was spent dealing with an infuriating data crunching task.
+<a href="https://twitter.com/crsexton">Chris</a> and I decided to celebrate by killing our
+poorly written Ruby cli scripts with fire. Printing the scripts and going out
+back to set them on fire would be more dramatic. Though it probably would be
+appreciated by the other businesses which we share space with.</p>
+
+<p>I took a breather and looked into <a href="http://www.zsh.org/">zsh</a> functions to
+accomplish this. Here's what I came up with:</p>
+
+<p><code>``sh
+rageflip() { echo " ┻━┻ ︵ヽ(\</code>Д´)ﾉ︵ ┻━┻  $*" }</p>
+
+<p>has_utility() { hash $1 2>/dev/null }</p>
+
+<h1>Wrapper around <code>rm -rf</code> expressing callers loathing and disdain for the</h1>
+
+<h1>provided files.</h1>
+
+<p>#</p>
+
+<h1>Inspiration was Homebrew's output:</h1>
+
+<h1>🍺  /usr/local/Cellar/tmux/1.9: 15 files, 628K, built in 25 seconds</h1>
+
+<p>#</p>
+
+<h1>For additional file stats, specific to code files, consider installing the</h1>
+
+<h1>Count Lines of Code (cloc) tool: http://cloc.sourceforge.net/</h1>
+
+<p>#</p>
+
+<h1>brew install cloc</h1>
+
+<h1>sudo apt-get install cloc</h1>
+
+<p>#
+ignite() {
+  if (( $# == 0 )) then echo "USAGE: ignite file [file] ..."; return; fi
+  local total_lines
+  local human_size
+  local lc_blank
+  local lc_comment
+  local lc_code
+  echo "BURN IT ALL!!! $(rageflip)"
+  for i do</p>
+
+<pre><code># If the file is empty we have 0 lines
+human_size=$(ls -lh $i | awk '{ print $5 }')
+total_lines=${$(sed -n '$=' $i):-0}
+stats="$total_lines lines"
+
+if has_utility cloc; then
+  # Setup some local variables regarding file stats
+  lc_blank=
+  lc_comment=
+  lc_code=
+  eval $(
+    cloc $i --quiet | tail -2 | head -1 |
+    awk '{ print "lc_blank="$3, "lc_comment="$4, "lc_code="$5 }'
+  )
+  if [ ! -z $lc_blank ]; then
+    stats="$lc_code loc, $lc_comment comments, $lc_blank whitespace lines"
+  fi
+fi
+
+rm -rf $i
+echo "🔥  $i: $stats, $human_size"
+</code></pre>
+
+<p>  done
+}
+```</p>
+
+<p>Now we can sit back and watch it all burn:</p>
+
+<p><code>sh
+$ ignite script/crunch-*
+BURN IT ALL!!!  ┻━┻ ︵ヽ(`Д´)ﾉ︵ ┻━┻
+🔥  script/crunch-dump-sessions: 5 loc, 5 comments, 2 whitespace lines, 330B
+🔥  script/crunch-normalize: 47 loc, 14 comments, 11 whitespace lines, 2.2K
+🔥  script/crunch-import-csv: 101 loc, 2 comments, 20 whitespace lines, 2.7K
+🔥  script/crunch-timestamp: 203 loc, 44 comments, 38 whitespace lines, 8.4K
+</code></p>
+
+<p>Though at this point, it might as well be a full script file. If I do that, I
+might as well just write it as a Ruby cli...</p>
+]]></content>
+  </entry>
+  
+</feed>
