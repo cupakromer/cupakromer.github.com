@@ -4,7 +4,7 @@
   <title><![CDATA[Category: ruby | Aaron Kromer's Blog]]></title>
   <link href="http://cupakromer.github.com/blog/categories/ruby/atom.xml" rel="self"/>
   <link href="http://cupakromer.github.com/"/>
-  <updated>2014-02-24T11:07:30-05:00</updated>
+  <updated>2014-03-17T17:57:43-04:00</updated>
   <id>http://cupakromer.github.com/</id>
   <author>
     <name><![CDATA[Aaron Kromer]]></name>
@@ -449,7 +449,9 @@ it is required by the spec.</p>
     <link href="http://cupakromer.github.com/blog/2013-07-26-monitoring-specific-messages-in-rspec-part-3.html"/>
     <updated>2013-07-26T10:13:00-04:00</updated>
     <id>http://cupakromer.github.com/blog/monitoring-specific-messages-in-rspec-part-3</id>
-    <content type="html"><![CDATA[<p>Continuing the series (
+    <content type="html"><![CDATA[<p>File /Users/aaron/dev/cupakromer/cupakromer.github.com/source/<em>posts/</em>monitor_specific_messages_posts.md could not be found</p>
+
+<p>Continuing the series (
 <a href="http://aaronkromer.com/blog/2013-07-17-monitoring-specific-messages-in-rspec.html">part 1</a>,
 <a href="http://aaronkromer.com/blog/2013-07-24-monitoring-specific-messages-in-rspec-part-2.html">part 2</a>
 ) on matching messages in RSpec, the next logical step is custom argument
