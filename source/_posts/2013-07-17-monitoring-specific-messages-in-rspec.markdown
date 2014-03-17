@@ -8,6 +8,8 @@ categories:
 - rspec
 ---
 
+{% render_partial _posts/_monitor_specific_messages_posts.md %}
+
 A common question I see asked in the #rspec IRC channel is:
 
 > How do I verify only a specific message is received?

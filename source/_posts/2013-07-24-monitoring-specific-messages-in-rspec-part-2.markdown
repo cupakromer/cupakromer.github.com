@@ -8,6 +8,8 @@ categories:
 - rspec
 ---
 
+{% render_partial _posts/_monitor_specific_messages_posts.md %}
+
 [Last time](http://aaronkromer.com/blog/2013-07-17-monitoring-specific-messages-in-rspec.html) it was demonstrated how it is possible to monitor only a desired
 message expectations. While that technique is useful for a vast majority of
 use cases, sometimes you need a bit more complexity.

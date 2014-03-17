@@ -8,6 +8,8 @@ categories:
 - rspec
 ---
 
+{% render_partial _posts/_monitor_specific_messages_posts.md %}
+
 Continuing the series (
 [part 1](http://aaronkromer.com/blog/2013-07-17-monitoring-specific-messages-in-rspec.html),
 [part 2](http://aaronkromer.com/blog/2013-07-24-monitoring-specific-messages-in-rspec-part-2.html)
