@@ -6,6 +6,7 @@ comments: true
 categories:
 - ruby
 - rspec
+- monitoring messages
 ---
 
 {% render_partial _posts/_monitor_specific_messages_posts.md %}
