@@ -1,0 +1,271 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: monitoring messages | Aaron Kromer's Blog]]></title>
+  <link href="http://cupakromer.github.com/blog/categories/monitoring-messages/atom.xml" rel="self"/>
+  <link href="http://cupakromer.github.com/"/>
+  <updated>2014-04-10T12:31:28-04:00</updated>
+  <id>http://cupakromer.github.com/</id>
+  <author>
+    <name><![CDATA[Aaron Kromer]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Monitoring Specific Messages in RSpec Part 3]]></title>
+    <link href="http://cupakromer.github.com/blog/2013-07-26-monitoring-specific-messages-in-rspec-part-3.html"/>
+    <updated>2013-07-26T10:13:00-04:00</updated>
+    <id>http://cupakromer.github.com/blog/monitoring-specific-messages-in-rspec-part-3</id>
+    <content type="html"><![CDATA[<p>File /Users/aaron/dev/cupakromer/cupakromer.github.com/source/<em>posts/</em>monitor_specific_messages_posts.md could not be found</p>
+
+<p>Continuing the series (
+<a href="http://aaronkromer.com/blog/2013-07-17-monitoring-specific-messages-in-rspec.html">part 1</a>,
+<a href="http://aaronkromer.com/blog/2013-07-24-monitoring-specific-messages-in-rspec-part-2.html">part 2</a>
+) on matching messages in RSpec, the next logical step is custom argument
+matchers.</p>
+
+<p><code>ruby
+expect(mechanic).to receive(:fix).with something_broken
+</code></p>
+
+<p>Using the RSpec <a href="https://www.relishapp.com/rspec/rspec-expectations/v/2-14/docs/custom-matchers">matcher DSL</a>
+this could simply look like:</p>
+
+<p>```ruby
+RSpec::Matchers.define :something_broken do
+  match do |thing|</p>
+
+<pre><code>thing.broken?
+</code></pre>
+
+<p>  end
+end
+```</p>
+
+<p>That's all there is to it. Now it can be used as both a regular matcher and as
+an argument matcher.</p>
+
+<p>If the matcher needs to be created from
+<a href="http://rubydoc.info/gems/rspec-expectations/RSpec/Matchers">scratch</a>, a
+<code>matches?</code> method must be defined instead:</p>
+
+<p>```ruby
+class SomethingBroken
+  def matches?(target)</p>
+
+<pre><code>target.broken?
+</code></pre>
+
+<p>  end
+end</p>
+
+<p>def something_broken
+  SomethingBroken.new
+end
+```</p>
+
+<p>This works just fine as a normal matcher, however, when used as an argument
+matcher, it will always fail. The reason is that argument matchers are invoked
+with the <code>==</code> operator, which by <a href="http://ruby-doc.org/core-2.0/BasicObject.html#method-i-3D-3D">default</a>,
+verifies if the objects are the same object.</p>
+
+<p>Attempting to use a normal matcher with the
+<a href="https://www.relishapp.com/rspec/rspec-expectations/v/2-14/docs/built-in-matchers/expect-change"><code>change</code></a>
+expectation also
+<a href="https://github.com/rspec/rspec-expectations/issues/276">oddly</a> fails, due to
+<code>change</code> invoking the
+<a href="http://aaronkromer.com/blog/2012-10-12-equals-equals-equals-the-forgotten-equality.html"><code>===</code></a>
+message, not <code>matches?</code>. Since the <a href="http://ruby-doc.org/core-2.0/Object.html#method-i-3D-3D-3D">default <code>===</code> behavior is
+<code>==</code></a>, the existing
+argument matchers currently work with it.</p>
+
+<p>There is active talk / changes
+<a href="https://github.com/rspec/rspec-expectations/issues/280">happening</a> to
+standardize the matchers to <code>===</code>. This will allow for a more consistent and
+composable interface. It also has the added benefit of allowing the matchers to
+be used in more complex conditionals using <code>case</code> statements.</p>
+
+<p>To fix the class based matcher simply add the necessary alias(es):</p>
+
+<p>```ruby
+class SomethingBroken
+  def matches?(target)</p>
+
+<pre><code>target.broken?
+</code></pre>
+
+<p>  end
+  alias_method :==, :matches?
+  alias_method :===, :matches?  # Not technically necessary due to default ==
+end
+```</p>
+
+<p>Note that with such a simple matcher, there is no reason it cannot be created
+as a simple composed method using an existing matcher:</p>
+
+<p><code>ruby
+def something_broken
+  be_broken   # Note: Not all built in matchers have == aliases yet
+end
+</code></p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Monitoring Specific Messages in RSpec Part 2]]></title>
+    <link href="http://cupakromer.github.com/blog/2013-07-24-monitoring-specific-messages-in-rspec-part-2.html"/>
+    <updated>2013-07-24T10:11:00-04:00</updated>
+    <id>http://cupakromer.github.com/blog/monitoring-specific-messages-in-rspec-part-2</id>
+    <content type="html"><![CDATA[<p>File /Users/aaron/dev/cupakromer/cupakromer.github.com/source/<em>posts/</em>monitor_specific_messages_posts.md could not be found</p>
+
+<p><a href="http://aaronkromer.com/blog/2013-07-17-monitoring-specific-messages-in-rspec.html">Last time</a> it was demonstrated how it is possible to monitor only a desired
+message expectations. While that technique is useful for a vast majority of
+use cases, sometimes you need a bit more complexity.</p>
+
+<p>Say for example, the desire is to verify the state of the provided parameter.
+As in this very contrived example (<em>Update: 2013-07-28 Paired down example to
+only show test and not implementation</em>):</p>
+
+<p>```ruby
+describe Factory do
+  context 'making sure current stock is ready' do</p>
+
+<pre><code>it 'only fixes broken widgets' do
+  # Setup code
+
+  states = []
+  expect(mechanic).to receive(:fix) do |widget|
+    states &lt;&lt; widget.broken?
+  end
+
+  expect{ factory.perform_maintenance }.to change{states}.to [true]
+end
+</code></pre>
+
+<p>  end
+end
+```</p>
+
+<p>This leverages the <a href="https://www.relishapp.com/rspec/rspec-mocks/v/2-14/docs/method-stubs/stub-with-substitute-implementation">stub with substitute implementation</a>
+provided by RSpec mocks. It can also be used with the <code>allow</code> syntax.</p>
+
+<p>While the above version has it's uses, it tends to hide some of the intent in
+the closure manipulation. A slightly more expressive method is just to add
+the state expectation in the block:</p>
+
+<p><code>ruby
+expect(mechanic).to receive(:fix) do |widget|
+  expect(widget).to be_broken
+end
+</code></p>
+
+<p>This last technique is great for setting up generic message stubs which require
+that something with specific state is provided. By adding it to a generic
+<code>allow</code>, it ensures when the contract is broken anywhere in the code under test,
+the test will properly fail. (<em>Update 2013-07-30: seems there is an
+<a href="https://github.com/rspec/rspec-mocks/pull/382">issue</a> with this technique when
+combined with
+<a href="https://www.relishapp.com/rspec/rspec-mocks/v/2-14/docs/message-expectations/calling-the-original-method"><code>and_call_original</code></a></em>)</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Monitoring Specific Messages in RSpec]]></title>
+    <link href="http://cupakromer.github.com/blog/2013-07-17-monitoring-specific-messages-in-rspec.html"/>
+    <updated>2013-07-17T11:34:00-04:00</updated>
+    <id>http://cupakromer.github.com/blog/monitoring-specific-messages-in-rspec</id>
+    <content type="html"><![CDATA[<p>File /Users/aaron/dev/cupakromer/cupakromer.github.com/source/<em>posts/</em>monitor_specific_messages_posts.md could not be found</p>
+
+<p>A common question I see asked in the #rspec IRC channel is:</p>
+
+<blockquote><p>How do I verify only a specific message is received?</p></blockquote>
+
+<p>The context of this question is usually a method that sends the same message
+multiple time, but with different arguments.</p>
+
+<p>Take the following contrived example:</p>
+
+<p>```ruby
+def do_stuff(thing)
+  thing.do :having_fun
+  thing.do :drink_coffee
+  thing.do :code
+end</p>
+
+<p>describe 'Coffee time!' do
+  it 'drinks the coffee' do</p>
+
+<pre><code>thing = double('Thing')
+
+expect(thing).to receive(:do).with(:drink_coffee)
+
+do_stuff thing
+</code></pre>
+
+<p>  end
+end
+```</p>
+
+<p>Alas, it fails:</p>
+
+<p>```text
+Double "Thing" received :do with unexpected arguments</p>
+
+<pre><code>     expected: (:drink_coffee)
+          got: (:having_fun)
+</code></pre>
+
+<p>```</p>
+
+<p>The solution is to add a generic stub (a catchall) for the desired message:</p>
+
+<p>```ruby
+describe 'Coffee time!' do
+  it 'drinks the coffee' do</p>
+
+<pre><code>thing = double('Thing')
+
+allow(thing).to receive(:do)
+expect(thing).to receive(:do).with(:drink_coffee)
+
+do_stuff thing
+</code></pre>
+
+<p>  end
+end
+```</p>
+
+<p>There is another solution which can also be used:
+<a href="https://www.relishapp.com/rspec/rspec-mocks/v/2-14/docs/method-stubs/as-null-object"><code>as_null_object</code></a>.</p>
+
+<p>The issue with <code>as_null_object</code> is that it will happily hum along even for
+invalid and unexpected messages. The double stub pattern above is
+explicit in the test, matching the catchall only with the message expectation.</p>
+
+<p>```ruby
+describe 'Coffee time!' do
+  it 'drinks the coffee' do</p>
+
+<pre><code>thing = double('Thing').as_null_object
+
+expect(thing).to receive(:do).with(:drink_coffee)
+
+do_stuff thing
+</code></pre>
+
+<p>  end
+end
+```</p>
+
+<p>Stay tuned for <a href="http://myronmars.to/n/dev-blog/2013/07/the-plan-for-rspec-3">RSpec3</a>
+when <code>as_null_object</code> doubles will be smart enough to only stub matching
+messages.  Or check out one of the many plugins:
+<a href="https://github.com/xaviershay/rspec-fire"><code>rspec-fire</code></a>,
+<a href="https://github.com/psyho/bogus"><code>bogus</code></a>, and
+<a href="https://github.com/ryanong/spy"><code>spy</code></a>.</p>
+]]></content>
+  </entry>
+  
+</feed>
