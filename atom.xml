@@ -4,7 +4,7 @@
   <title><![CDATA[Aaron Kromer's Blog]]></title>
   <link href="http://cupakromer.github.com/atom.xml" rel="self"/>
   <link href="http://cupakromer.github.com/"/>
-  <updated>2014-04-10T12:31:28-04:00</updated>
+  <updated>2014-09-29T12:00:40-04:00</updated>
   <id>http://cupakromer.github.com/</id>
   <author>
     <name><![CDATA[Aaron Kromer]]></name>
@@ -12,6 +12,368 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Farewell JSON API gems]]></title>
+    <link href="http://cupakromer.github.com/blog/2014-09-29-farewell-json-api-gems.html"/>
+    <updated>2014-09-29T11:51:00-04:00</updated>
+    <id>http://cupakromer.github.com/blog/farewell-json-api-gems</id>
+    <content type="html"><![CDATA[<p>In the past, testing JSON APIs tended to be a bit painful for me. Most of this
+pain revolved around setting expectations on the response body.</p>
+
+<p>If you treat the response as a raw string, attempting to use regular
+expressions ends up being an exercise in how you handle frustration. While a
+JSON body is a string, it has structure. Using regular expressions for parsing
+them is akin to using a hammer on a screw. It&#8217;ll get the job done, but it&#8217;s the
+wrong tool for the job.</p>
+
+<p>Ruby gives us <a href="http://ruby-doc.org/stdlib-2.1.3/libdoc/json/rdoc/JSON.html#method-i-parse"><code>JSON.parse</code></a>.
+Which will convert a valid JSON string into a more familiar object structure.
+Now comes the &#8220;fun&#8221; part of actually verifying that structure:</p>
+
+<ul>
+<li>Sometimes you only care about part of the response</li>
+<li>Sometimes you care about validating the entire response</li>
+<li>Sometimes the response is very complicated consisting of many smaller, more
+logically meaningful, structures</li>
+<li>Sometimes you only care about the general structure (e.g. this value must be
+a number, that value must be either an empty array or an array of strings,
+etc.)</li>
+</ul>
+
+
+<p>It is possible to do all of these validations out of the box. In my experience,
+writing them tended to be tedious. Often the resulting code left something to
+be desired in terms of readability. This was especially true when validating the
+general response structure.</p>
+
+<p>I like to follow the &#8220;one expectation per spec&#8221; guideline. However, this lead
+to writing many small specs. Normally, this is perfectly fine and something I
+advocate you do. However, in terms of a JSON response, it means I need to have
+more discipline to keep everything explicitly organized.</p>
+
+<p>Naturally in the Ruby community, many gems have sprouted up to help with this
+problem set. I&#8217;ve had a bit of success with some of those gems in the past.
+However, with the release of RSpec 3, <a href="http://myronmars.to/n/dev-blog/2014/01/new-in-rspec-3-composable-matchers">several new
+features</a>
+have eliminated my need for these JSON gems.</p>
+
+<p>Expectations on a JSON response is a great fit for <a href="https://www.relishapp.com/rspec/rspec-expectations/v/3-0/docs/composing-matchers">composing
+matchers</a>.
+When I need to logically group checking several options, the <a href="https://www.relishapp.com/rspec/rspec-expectations/v/3-0/docs/compound-expectations">compound matchers</a>
+are the perfect tool.</p>
+
+<p>Often people don&#8217;t realize that the matcher messages (i.e. <code>exist</code>, <code>be</code>, <code>eq</code>,
+<code>include</code>, etc) are just factories. They are just helper methods which create
+the matcher object for you. That means, we can easily write our own using our
+app&#8217;s domain language.</p>
+
+<p>Let&#8217;s jump right into an example!</p>
+
+<p>These examples are assuming a JSON structure like one of the ones listed on the
+<a href="http://jsonapi.org/format/#document-structure-compound-documents">jsonapi.org</a>
+site. Though I am assuming integer value are represented as numbers and not
+strings, since that is valid JSON and more meaningful:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+<span class='line-number'>56</span>
+<span class='line-number'>57</span>
+<span class='line-number'>58</span>
+<span class='line-number'>59</span>
+<span class='line-number'>60</span>
+<span class='line-number'>61</span>
+<span class='line-number'>62</span>
+<span class='line-number'>63</span>
+<span class='line-number'>64</span>
+<span class='line-number'>65</span>
+<span class='line-number'>66</span>
+<span class='line-number'>67</span>
+<span class='line-number'>68</span>
+<span class='line-number'>69</span>
+<span class='line-number'>70</span>
+<span class='line-number'>71</span>
+<span class='line-number'>72</span>
+<span class='line-number'>73</span>
+<span class='line-number'>74</span>
+<span class='line-number'>75</span>
+<span class='line-number'>76</span>
+<span class='line-number'>77</span>
+<span class='line-number'>78</span>
+<span class='line-number'>79</span>
+<span class='line-number'>80</span>
+<span class='line-number'>81</span>
+<span class='line-number'>82</span>
+<span class='line-number'>83</span>
+<span class='line-number'>84</span>
+<span class='line-number'>85</span>
+<span class='line-number'>86</span>
+<span class='line-number'>87</span>
+<span class='line-number'>88</span>
+<span class='line-number'>89</span>
+<span class='line-number'>90</span>
+<span class='line-number'>91</span>
+<span class='line-number'>92</span>
+<span class='line-number'>93</span>
+<span class='line-number'>94</span>
+<span class='line-number'>95</span>
+<span class='line-number'>96</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="c1"># Use common JSON helpers such as: `json_response`, `be_an_empty`, `all_match`</span>
+</span><span class='line'><span class="nb">require</span> <span class="s1">&#39;support/json_api_helpers&#39;</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">def</span> <span class="nf">be_kits_root_json</span>
+</span><span class='line'>  <span class="n">be_kits_json</span><span class="o">.</span><span class="n">and</span><span class="p">(</span>
+</span><span class='line'>    <span class="kp">include</span><span class="p">(</span>
+</span><span class='line'>      <span class="s1">&#39;meta&#39;</span> <span class="o">=&gt;</span> <span class="p">{</span>
+</span><span class='line'>        <span class="s1">&#39;first&#39;</span>   <span class="o">=&gt;</span> <span class="n">anything</span><span class="p">,</span>
+</span><span class='line'>        <span class="s1">&#39;last&#39;</span>    <span class="o">=&gt;</span> <span class="n">anything</span><span class="p">,</span>
+</span><span class='line'>        <span class="s1">&#39;current&#39;</span> <span class="o">=&gt;</span> <span class="n">anything</span><span class="p">,</span>
+</span><span class='line'>      <span class="p">}</span>
+</span><span class='line'>    <span class="p">)</span>
+</span><span class='line'>  <span class="p">)</span>
+</span><span class='line'><span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">def</span> <span class="nf">be_kits_json</span>
+</span><span class='line'>  <span class="kp">include</span><span class="p">(</span>
+</span><span class='line'>    <span class="s1">&#39;version&#39;</span> <span class="o">=&gt;</span> <span class="s1">&#39;1.0&#39;</span><span class="p">,</span>
+</span><span class='line'>    <span class="s1">&#39;links&#39;</span>   <span class="o">=&gt;</span> <span class="p">{</span>
+</span><span class='line'>      <span class="s1">&#39;kits.beacons&#39;</span>       <span class="o">=&gt;</span> <span class="s2">&quot;</span><span class="si">#{</span><span class="n">beacons_url</span><span class="si">}</span><span class="s2">/{kits.beacons}&quot;</span><span class="p">,</span>
+</span><span class='line'>      <span class="s1">&#39;kits.overlays&#39;</span>      <span class="o">=&gt;</span> <span class="s2">&quot;</span><span class="si">#{</span><span class="n">overlays_url</span><span class="si">}</span><span class="s2">/{kits.overlays}&quot;</span><span class="p">,</span>
+</span><span class='line'>      <span class="s1">&#39;beacons.attributes&#39;</span> <span class="o">=&gt;</span> <span class="s2">&quot;</span><span class="si">#{</span><span class="n">beacon_attributes_url</span><span class="si">}</span><span class="s2">/{beacons.attributes}&quot;</span><span class="p">,</span>
+</span><span class='line'>    <span class="p">},</span>
+</span><span class='line'>    <span class="s1">&#39;kits&#39;</span>    <span class="o">=&gt;</span> <span class="n">be_an_empty</span><span class="p">(</span><span class="nb">Array</span><span class="p">)</span><span class="o">.</span><span class="n">or</span><span class="p">(</span>
+</span><span class='line'>      <span class="n">all_match</span><span class="p">(</span>
+</span><span class='line'>        <span class="s1">&#39;id&#39;</span>        <span class="o">=&gt;</span> <span class="no">Fixnum</span><span class="p">,</span>
+</span><span class='line'>        <span class="s1">&#39;name&#39;</span>      <span class="o">=&gt;</span> <span class="n">be_nil</span><span class="o">.</span><span class="n">or</span><span class="p">(</span><span class="n">be_a</span> <span class="nb">String</span><span class="p">),</span>
+</span><span class='line'>        <span class="s1">&#39;api_token&#39;</span> <span class="o">=&gt;</span> <span class="nb">String</span><span class="p">,</span>
+</span><span class='line'>        <span class="s1">&#39;account&#39;</span>   <span class="o">=&gt;</span> <span class="n">be_nil</span><span class="o">.</span><span class="n">or</span><span class="p">(</span>
+</span><span class='line'>          <span class="n">match</span><span class="p">(</span>
+</span><span class='line'>            <span class="s1">&#39;id&#39;</span>   <span class="o">=&gt;</span> <span class="no">Fixnum</span><span class="p">,</span>
+</span><span class='line'>            <span class="s1">&#39;name&#39;</span> <span class="o">=&gt;</span> <span class="n">be_nil</span><span class="o">.</span><span class="n">or</span><span class="p">(</span><span class="n">be_a</span> <span class="nb">String</span><span class="p">),</span>
+</span><span class='line'>          <span class="p">)</span>
+</span><span class='line'>        <span class="p">),</span>
+</span><span class='line'>        <span class="s1">&#39;links&#39;</span>     <span class="o">=&gt;</span> <span class="p">{</span>
+</span><span class='line'>          <span class="s1">&#39;self&#39;</span>     <span class="o">=&gt;</span> <span class="sr">/\A</span><span class="si">#{</span><span class="n">kits_url</span><span class="si">}</span><span class="sr">\/\d+\z/</span><span class="p">,</span>
+</span><span class='line'>          <span class="s1">&#39;beacons&#39;</span>  <span class="o">=&gt;</span> <span class="n">be_an_empty</span><span class="p">(</span><span class="nb">Array</span><span class="p">)</span><span class="o">.</span><span class="n">or</span><span class="p">(</span><span class="n">all</span> <span class="n">be_a</span> <span class="no">Fixnum</span><span class="p">),</span>
+</span><span class='line'>          <span class="s1">&#39;overlays&#39;</span> <span class="o">=&gt;</span> <span class="n">be_an_empty</span><span class="p">(</span><span class="nb">Array</span><span class="p">)</span><span class="o">.</span><span class="n">or</span><span class="p">(</span><span class="n">all</span> <span class="n">be_a</span> <span class="no">Fixnum</span><span class="p">),</span>
+</span><span class='line'>        <span class="p">},</span>
+</span><span class='line'>      <span class="p">),</span>
+</span><span class='line'>    <span class="p">),</span>
+</span><span class='line'>  <span class="p">)</span>
+</span><span class='line'><span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">def</span> <span class="nf">include_linked_resources</span><span class="p">(</span><span class="o">*</span><span class="n">resources</span><span class="p">)</span>
+</span><span class='line'>  <span class="n">resource_maps</span> <span class="o">=</span> <span class="n">resources</span><span class="o">.</span><span class="n">each_with_object</span><span class="p">({})</span> <span class="p">{</span> <span class="o">|</span><span class="n">resource</span><span class="p">,</span> <span class="n">mappings</span><span class="o">|</span>
+</span><span class='line'>    <span class="n">mappings</span><span class="o">.</span><span class="n">store</span><span class="p">(</span><span class="n">resource</span><span class="o">.</span><span class="n">to_s</span><span class="p">,</span> <span class="n">be_an</span><span class="p">(</span><span class="nb">Array</span><span class="p">))</span>
+</span><span class='line'>  <span class="p">}</span>
+</span><span class='line'>  <span class="kp">include</span><span class="p">(</span><span class="s1">&#39;linked&#39;</span> <span class="o">=&gt;</span> <span class="n">resource_maps</span><span class="p">)</span>
+</span><span class='line'><span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">context</span> <span class="s2">&quot;a basic user&quot;</span><span class="p">,</span> <span class="s2">&quot;with a kit having no beacons or maps&quot;</span> <span class="k">do</span>
+</span><span class='line'>  <span class="c1"># Setup world state</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">describe</span> <span class="s2">&quot;requesting the kits root&quot;</span> <span class="k">do</span>
+</span><span class='line'>    <span class="n">it</span> <span class="s2">&quot;conforms to the expected JSON structure&quot;</span> <span class="k">do</span>
+</span><span class='line'>      <span class="n">get</span> <span class="n">kits_path</span><span class="p">,</span> <span class="o">*</span><span class="n">options</span>
+</span><span class='line'>      <span class="n">expect</span><span class="p">(</span><span class="n">json_response</span><span class="p">)</span><span class="o">.</span><span class="n">to</span> <span class="n">be_kits_root_json</span>
+</span><span class='line'>    <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1"># More specific specs</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">describe</span> <span class="s2">&quot;requesting a kit&quot;</span> <span class="k">do</span>
+</span><span class='line'>    <span class="n">it</span> <span class="s2">&quot;conforms to the expected JSON structure&quot;</span> <span class="k">do</span>
+</span><span class='line'>      <span class="n">get</span> <span class="n">kit_path</span><span class="p">(</span><span class="n">kit</span><span class="p">),</span> <span class="o">*</span><span class="n">options</span>
+</span><span class='line'>      <span class="n">expect</span><span class="p">(</span><span class="n">json_response</span><span class="p">)</span><span class="o">.</span><span class="n">to</span> <span class="n">be_kits_json</span>
+</span><span class='line'>    <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1"># More specific specs</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1"># More state specs</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">context</span> <span class="s2">&quot;a developer user&quot;</span><span class="p">,</span> <span class="s2">&quot;sending request with parameter &#39;include&#39;&quot;</span> <span class="k">do</span>
+</span><span class='line'>  <span class="c1"># Setup world state</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">describe</span> <span class="s2">&quot;requesting the kits root&quot;</span> <span class="k">do</span>
+</span><span class='line'>    <span class="n">it</span> <span class="s2">&quot;conforms to the expected JSON structure with included resources&quot;</span> <span class="k">do</span>
+</span><span class='line'>      <span class="n">get</span> <span class="n">kits_path</span><span class="p">(</span><span class="kp">include</span><span class="p">:</span> <span class="s2">&quot;beacons,beacon_attributes&quot;</span><span class="p">),</span> <span class="o">*</span><span class="n">options</span>
+</span><span class='line'>      <span class="n">expect</span><span class="p">(</span><span class="n">json_response</span><span class="p">)</span><span class="o">.</span><span class="n">to</span> <span class="n">be_kits_root_json</span><span class="o">.</span><span class="n">and</span><span class="p">(</span>
+</span><span class='line'>        <span class="n">include_linked_resources</span><span class="p">(</span><span class="ss">:beacons</span><span class="p">,</span> <span class="ss">:beacon_attributes</span><span class="p">)</span>
+</span><span class='line'>      <span class="p">)</span>
+</span><span class='line'>    <span class="k">end</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">describe</span> <span class="s2">&quot;requesting a beacon&quot;</span> <span class="k">do</span>
+</span><span class='line'>    <span class="n">it</span> <span class="s2">&quot;conforms to the expected JSON structure with included resources&quot;</span> <span class="k">do</span>
+</span><span class='line'>      <span class="n">get</span> <span class="n">kit_path</span><span class="p">(</span><span class="n">kit</span><span class="p">,</span> <span class="kp">include</span><span class="p">:</span> <span class="s2">&quot;beacons,beacon_attributes&quot;</span><span class="p">),</span> <span class="o">*</span><span class="n">options</span>
+</span><span class='line'>      <span class="n">expect</span><span class="p">(</span><span class="n">json_response</span><span class="p">)</span><span class="o">.</span><span class="n">to</span> <span class="n">be_kits_json</span><span class="o">.</span><span class="n">and</span><span class="p">(</span>
+</span><span class='line'>        <span class="n">include_linked_resources</span><span class="p">(</span><span class="ss">:beacons</span><span class="p">,</span> <span class="ss">:beacon_attributes</span><span class="p">)</span>
+</span><span class='line'>      <span class="p">)</span>
+</span><span class='line'>    <span class="k">end</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The possibilities are fairly endless. We could improve this further by allowing
+the factories to take model instances or attribute hashes. We can use those to
+check specific content when available:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">def</span> <span class="nf">kit_resource</span><span class="p">(</span><span class="n">kit</span> <span class="o">=</span> <span class="kp">nil</span><span class="p">)</span>
+</span><span class='line'>  <span class="k">if</span> <span class="n">kit</span>
+</span><span class='line'>    <span class="n">account</span> <span class="o">=</span> <span class="n">kit</span><span class="o">.</span><span class="n">account</span>
+</span><span class='line'>    <span class="n">account</span> <span class="o">=</span> <span class="p">{</span> <span class="s1">&#39;id&#39;</span> <span class="o">=&gt;</span> <span class="n">account</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="s1">&#39;name&#39;</span> <span class="o">=&gt;</span> <span class="n">account</span><span class="o">.</span><span class="n">name</span> <span class="p">}</span> <span class="k">if</span> <span class="n">account</span>
+</span><span class='line'>    <span class="p">{</span>
+</span><span class='line'>      <span class="s1">&#39;id&#39;</span>         <span class="o">=&gt;</span> <span class="n">kit</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+</span><span class='line'>      <span class="s1">&#39;name&#39;</span>       <span class="o">=&gt;</span> <span class="n">kit</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+</span><span class='line'>      <span class="s1">&#39;api_token&#39;</span><span class="p">,</span> <span class="o">=&gt;</span> <span class="n">kit</span><span class="o">.</span><span class="n">api_token</span><span class="p">,</span>
+</span><span class='line'>      <span class="s1">&#39;account&#39;</span>    <span class="o">=&gt;</span> <span class="n">account</span><span class="p">,</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>  <span class="k">else</span>
+</span><span class='line'>    <span class="p">{</span>
+</span><span class='line'>      <span class="s1">&#39;id&#39;</span>        <span class="o">=&gt;</span> <span class="no">Fixnum</span><span class="p">,</span>
+</span><span class='line'>      <span class="s1">&#39;name&#39;</span>      <span class="o">=&gt;</span> <span class="n">be_nil</span><span class="o">.</span><span class="n">or</span><span class="p">(</span><span class="n">be_a</span> <span class="nb">String</span><span class="p">),</span>
+</span><span class='line'>      <span class="s1">&#39;api_token&#39;</span> <span class="o">=&gt;</span> <span class="nb">String</span><span class="p">,</span>
+</span><span class='line'>      <span class="s1">&#39;account&#39;</span>   <span class="o">=&gt;</span> <span class="n">be_nil</span><span class="o">.</span><span class="n">or</span><span class="p">(</span>
+</span><span class='line'>        <span class="n">match</span><span class="p">(</span>
+</span><span class='line'>          <span class="s1">&#39;id&#39;</span>   <span class="o">=&gt;</span> <span class="no">Fixnum</span><span class="p">,</span>
+</span><span class='line'>          <span class="s1">&#39;name&#39;</span> <span class="o">=&gt;</span> <span class="n">be_nil</span><span class="o">.</span><span class="n">or</span><span class="p">(</span><span class="n">be_a</span> <span class="nb">String</span><span class="p">),</span>
+</span><span class='line'>        <span class="p">)</span>
+</span><span class='line'>      <span class="p">),</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">context</span> <span class="s2">&quot;a basic user&quot;</span><span class="p">,</span> <span class="s2">&quot;with a kit having no beacons or maps&quot;</span> <span class="k">do</span>
+</span><span class='line'>  <span class="c1"># Setup world state</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">describe</span> <span class="s2">&quot;requesting the kits root&quot;</span> <span class="k">do</span>
+</span><span class='line'>    <span class="n">it</span> <span class="s2">&quot;conforms to the expected JSON structure&quot;</span> <span class="k">do</span>
+</span><span class='line'>      <span class="n">get</span> <span class="n">kits_path</span><span class="p">,</span> <span class="o">*</span><span class="n">options</span>
+</span><span class='line'>      <span class="n">expect</span><span class="p">(</span><span class="n">json_response</span><span class="p">)</span><span class="o">.</span><span class="n">to</span> <span class="n">be_kits_root_json</span>
+</span><span class='line'>    <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">it</span> <span class="s2">&quot;has only the expected kit&quot;</span> <span class="k">do</span>
+</span><span class='line'>      <span class="n">get</span> <span class="n">kits_path</span><span class="p">,</span> <span class="o">*</span><span class="n">options</span>
+</span><span class='line'>      <span class="n">expect</span><span class="p">(</span><span class="n">json_response</span><span class="p">)</span><span class="o">.</span><span class="n">to</span> <span class="kp">include</span> <span class="s1">&#39;kits&#39;</span> <span class="o">=&gt;</span> <span class="o">[</span><span class="n">kit_resource</span><span class="p">(</span><span class="n">basic_users_kit</span><span class="p">)</span><span class="o">]</span>
+</span><span class='line'>    <span class="k">end</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">describe</span> <span class="s2">&quot;requesting a beacon&quot;</span> <span class="k">do</span>
+</span><span class='line'>    <span class="n">it</span> <span class="s2">&quot;conforms to the expected JSON structure&quot;</span> <span class="k">do</span>
+</span><span class='line'>      <span class="n">get</span> <span class="n">kit_path</span><span class="p">(</span><span class="n">kit</span><span class="p">),</span> <span class="o">*</span><span class="n">options</span>
+</span><span class='line'>      <span class="n">expect</span><span class="p">(</span><span class="n">json_response</span><span class="p">)</span><span class="o">.</span><span class="n">to</span> <span class="n">be_kits_json</span><span class="p">(</span><span class="n">basic_users_kit</span><span class="p">)</span>
+</span><span class='line'>    <span class="k">end</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Happy RSpec&#8217;ing!</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Ignite Those Horrible Scripts]]></title>

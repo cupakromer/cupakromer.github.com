@@ -1,0 +1,270 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: json | Aaron Kromer's Blog]]></title>
+  <link href="http://cupakromer.github.com/blog/categories/json/atom.xml" rel="self"/>
+  <link href="http://cupakromer.github.com/"/>
+  <updated>2014-09-29T12:00:40-04:00</updated>
+  <id>http://cupakromer.github.com/</id>
+  <author>
+    <name><![CDATA[Aaron Kromer]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Farewell JSON API gems]]></title>
+    <link href="http://cupakromer.github.com/blog/2014-09-29-farewell-json-api-gems.html"/>
+    <updated>2014-09-29T11:51:00-04:00</updated>
+    <id>http://cupakromer.github.com/blog/farewell-json-api-gems</id>
+    <content type="html"><![CDATA[<p>In the past, testing JSON APIs tended to be a bit painful for me. Most of this
+pain revolved around setting expectations on the response body.</p>
+
+<p>If you treat the response as a raw string, attempting to use regular
+expressions ends up being an exercise in how you handle frustration. While a
+JSON body is a string, it has structure. Using regular expressions for parsing
+them is akin to using a hammer on a screw. It'll get the job done, but it's the
+wrong tool for the job.</p>
+
+<p>Ruby gives us <a href="http://ruby-doc.org/stdlib-2.1.3/libdoc/json/rdoc/JSON.html#method-i-parse"><code>JSON.parse</code></a>.
+Which will convert a valid JSON string into a more familiar object structure.
+Now comes the "fun" part of actually verifying that structure:</p>
+
+<ul>
+<li>Sometimes you only care about part of the response</li>
+<li>Sometimes you care about validating the entire response</li>
+<li>Sometimes the response is very complicated consisting of many smaller, more
+logically meaningful, structures</li>
+<li>Sometimes you only care about the general structure (e.g. this value must be
+a number, that value must be either an empty array or an array of strings,
+etc.)</li>
+</ul>
+
+
+<p>It is possible to do all of these validations out of the box. In my experience,
+writing them tended to be tedious. Often the resulting code left something to
+be desired in terms of readability. This was especially true when validating the
+general response structure.</p>
+
+<p>I like to follow the "one expectation per spec" guideline. However, this lead
+to writing many small specs. Normally, this is perfectly fine and something I
+advocate you do. However, in terms of a JSON response, it means I need to have
+more discipline to keep everything explicitly organized.</p>
+
+<p>Naturally in the Ruby community, many gems have sprouted up to help with this
+problem set. I've had a bit of success with some of those gems in the past.
+However, with the release of RSpec 3, <a href="http://myronmars.to/n/dev-blog/2014/01/new-in-rspec-3-composable-matchers">several new
+features</a>
+have eliminated my need for these JSON gems.</p>
+
+<p>Expectations on a JSON response is a great fit for <a href="https://www.relishapp.com/rspec/rspec-expectations/v/3-0/docs/composing-matchers">composing
+matchers</a>.
+When I need to logically group checking several options, the <a href="https://www.relishapp.com/rspec/rspec-expectations/v/3-0/docs/compound-expectations">compound matchers</a>
+are the perfect tool.</p>
+
+<p>Often people don't realize that the matcher messages (i.e. <code>exist</code>, <code>be</code>, <code>eq</code>,
+<code>include</code>, etc) are just factories. They are just helper methods which create
+the matcher object for you. That means, we can easily write our own using our
+app's domain language.</p>
+
+<p>Let's jump right into an example!</p>
+
+<p>These examples are assuming a JSON structure like one of the ones listed on the
+<a href="http://jsonapi.org/format/#document-structure-compound-documents">jsonapi.org</a>
+site. Though I am assuming integer value are represented as numbers and not
+strings, since that is valid JSON and more meaningful:</p>
+
+<p>```ruby</p>
+
+<h1>Use common JSON helpers such as: <code>json_response</code>, <code>be_an_empty</code>, <code>all_match</code></h1>
+
+<p>require 'support/json_api_helpers'</p>
+
+<p>def be_kits_root_json
+  be_kits_json.and(</p>
+
+<pre><code>include(
+  'meta' =&gt; {
+    'first'   =&gt; anything,
+    'last'    =&gt; anything,
+    'current' =&gt; anything,
+  }
+)
+</code></pre>
+
+<p>  )
+end</p>
+
+<p>def be_kits_json
+  include(</p>
+
+<pre><code>'version' =&gt; '1.0',
+'links'   =&gt; {
+  'kits.beacons'       =&gt; "#{beacons_url}/{kits.beacons}",
+  'kits.overlays'      =&gt; "#{overlays_url}/{kits.overlays}",
+  'beacons.attributes' =&gt; "#{beacon_attributes_url}/{beacons.attributes}",
+},
+'kits'    =&gt; be_an_empty(Array).or(
+  all_match(
+    'id'        =&gt; Fixnum,
+    'name'      =&gt; be_nil.or(be_a String),
+    'api_token' =&gt; String,
+    'account'   =&gt; be_nil.or(
+      match(
+        'id'   =&gt; Fixnum,
+        'name' =&gt; be_nil.or(be_a String),
+      )
+    ),
+    'links'     =&gt; {
+      'self'     =&gt; /\A#{kits_url}\/\d+\z/,
+      'beacons'  =&gt; be_an_empty(Array).or(all be_a Fixnum),
+      'overlays' =&gt; be_an_empty(Array).or(all be_a Fixnum),
+    },
+  ),
+),
+</code></pre>
+
+<p>  )
+end</p>
+
+<p>def include_linked_resources(*resources)
+  resource_maps = resources.each_with_object({}) { |resource, mappings|</p>
+
+<pre><code>mappings.store(resource.to_s, be_an(Array))
+</code></pre>
+
+<p>  }
+  include('linked' => resource_maps)
+end</p>
+
+<p>context "a basic user", "with a kit having no beacons or maps" do
+  # Setup world state</p>
+
+<p>  describe "requesting the kits root" do</p>
+
+<pre><code>it "conforms to the expected JSON structure" do
+  get kits_path, *options
+  expect(json_response).to be_kits_root_json
+end
+
+# More specific specs
+</code></pre>
+
+<p>  end</p>
+
+<p>  describe "requesting a kit" do</p>
+
+<pre><code>it "conforms to the expected JSON structure" do
+  get kit_path(kit), *options
+  expect(json_response).to be_kits_json
+end
+
+# More specific specs
+</code></pre>
+
+<p>  end
+end</p>
+
+<h1>More state specs</h1>
+
+<p>context "a developer user", "sending request with parameter 'include'" do
+  # Setup world state</p>
+
+<p>  describe "requesting the kits root" do</p>
+
+<pre><code>it "conforms to the expected JSON structure with included resources" do
+  get kits_path(include: "beacons,beacon_attributes"), *options
+  expect(json_response).to be_kits_root_json.and(
+    include_linked_resources(:beacons, :beacon_attributes)
+  )
+end
+</code></pre>
+
+<p>  end</p>
+
+<p>  describe "requesting a beacon" do</p>
+
+<pre><code>it "conforms to the expected JSON structure with included resources" do
+  get kit_path(kit, include: "beacons,beacon_attributes"), *options
+  expect(json_response).to be_kits_json.and(
+    include_linked_resources(:beacons, :beacon_attributes)
+  )
+end
+</code></pre>
+
+<p>  end
+end
+```</p>
+
+<p>The possibilities are fairly endless. We could improve this further by allowing
+the factories to take model instances or attribute hashes. We can use those to
+check specific content when available:</p>
+
+<p>```ruby
+def kit_resource(kit = nil)
+  if kit</p>
+
+<pre><code>account = kit.account
+account = { 'id' =&gt; account.id, 'name' =&gt; account.name } if account
+{
+  'id'         =&gt; kit.id,
+  'name'       =&gt; kit.name,
+  'api_token', =&gt; kit.api_token,
+  'account'    =&gt; account,
+}
+</code></pre>
+
+<p>  else</p>
+
+<pre><code>{
+  'id'        =&gt; Fixnum,
+  'name'      =&gt; be_nil.or(be_a String),
+  'api_token' =&gt; String,
+  'account'   =&gt; be_nil.or(
+    match(
+      'id'   =&gt; Fixnum,
+      'name' =&gt; be_nil.or(be_a String),
+    )
+  ),
+}
+</code></pre>
+
+<p>  end
+end</p>
+
+<p>context "a basic user", "with a kit having no beacons or maps" do
+  # Setup world state</p>
+
+<p>  describe "requesting the kits root" do</p>
+
+<pre><code>it "conforms to the expected JSON structure" do
+  get kits_path, *options
+  expect(json_response).to be_kits_root_json
+end
+
+it "has only the expected kit" do
+  get kits_path, *options
+  expect(json_response).to include 'kits' =&gt; [kit_resource(basic_users_kit)]
+end
+</code></pre>
+
+<p>  end</p>
+
+<p>  describe "requesting a beacon" do</p>
+
+<pre><code>it "conforms to the expected JSON structure" do
+  get kit_path(kit), *options
+  expect(json_response).to be_kits_json(basic_users_kit)
+end
+</code></pre>
+
+<p>  end
+end
+```</p>
+
+<p>Happy RSpec'ing!</p>
+]]></content>
+  </entry>
+  
+</feed>

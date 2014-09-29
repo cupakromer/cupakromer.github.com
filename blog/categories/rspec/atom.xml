@@ -4,7 +4,7 @@
   <title><![CDATA[Category: rspec | Aaron Kromer's Blog]]></title>
   <link href="http://cupakromer.github.com/blog/categories/rspec/atom.xml" rel="self"/>
   <link href="http://cupakromer.github.com/"/>
-  <updated>2014-04-10T12:31:28-04:00</updated>
+  <updated>2014-09-29T12:00:40-04:00</updated>
   <id>http://cupakromer.github.com/</id>
   <author>
     <name><![CDATA[Aaron Kromer]]></name>
@@ -12,6 +12,260 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Farewell JSON API gems]]></title>
+    <link href="http://cupakromer.github.com/blog/2014-09-29-farewell-json-api-gems.html"/>
+    <updated>2014-09-29T11:51:00-04:00</updated>
+    <id>http://cupakromer.github.com/blog/farewell-json-api-gems</id>
+    <content type="html"><![CDATA[<p>In the past, testing JSON APIs tended to be a bit painful for me. Most of this
+pain revolved around setting expectations on the response body.</p>
+
+<p>If you treat the response as a raw string, attempting to use regular
+expressions ends up being an exercise in how you handle frustration. While a
+JSON body is a string, it has structure. Using regular expressions for parsing
+them is akin to using a hammer on a screw. It'll get the job done, but it's the
+wrong tool for the job.</p>
+
+<p>Ruby gives us <a href="http://ruby-doc.org/stdlib-2.1.3/libdoc/json/rdoc/JSON.html#method-i-parse"><code>JSON.parse</code></a>.
+Which will convert a valid JSON string into a more familiar object structure.
+Now comes the "fun" part of actually verifying that structure:</p>
+
+<ul>
+<li>Sometimes you only care about part of the response</li>
+<li>Sometimes you care about validating the entire response</li>
+<li>Sometimes the response is very complicated consisting of many smaller, more
+logically meaningful, structures</li>
+<li>Sometimes you only care about the general structure (e.g. this value must be
+a number, that value must be either an empty array or an array of strings,
+etc.)</li>
+</ul>
+
+
+<p>It is possible to do all of these validations out of the box. In my experience,
+writing them tended to be tedious. Often the resulting code left something to
+be desired in terms of readability. This was especially true when validating the
+general response structure.</p>
+
+<p>I like to follow the "one expectation per spec" guideline. However, this lead
+to writing many small specs. Normally, this is perfectly fine and something I
+advocate you do. However, in terms of a JSON response, it means I need to have
+more discipline to keep everything explicitly organized.</p>
+
+<p>Naturally in the Ruby community, many gems have sprouted up to help with this
+problem set. I've had a bit of success with some of those gems in the past.
+However, with the release of RSpec 3, <a href="http://myronmars.to/n/dev-blog/2014/01/new-in-rspec-3-composable-matchers">several new
+features</a>
+have eliminated my need for these JSON gems.</p>
+
+<p>Expectations on a JSON response is a great fit for <a href="https://www.relishapp.com/rspec/rspec-expectations/v/3-0/docs/composing-matchers">composing
+matchers</a>.
+When I need to logically group checking several options, the <a href="https://www.relishapp.com/rspec/rspec-expectations/v/3-0/docs/compound-expectations">compound matchers</a>
+are the perfect tool.</p>
+
+<p>Often people don't realize that the matcher messages (i.e. <code>exist</code>, <code>be</code>, <code>eq</code>,
+<code>include</code>, etc) are just factories. They are just helper methods which create
+the matcher object for you. That means, we can easily write our own using our
+app's domain language.</p>
+
+<p>Let's jump right into an example!</p>
+
+<p>These examples are assuming a JSON structure like one of the ones listed on the
+<a href="http://jsonapi.org/format/#document-structure-compound-documents">jsonapi.org</a>
+site. Though I am assuming integer value are represented as numbers and not
+strings, since that is valid JSON and more meaningful:</p>
+
+<p>```ruby</p>
+
+<h1>Use common JSON helpers such as: <code>json_response</code>, <code>be_an_empty</code>, <code>all_match</code></h1>
+
+<p>require 'support/json_api_helpers'</p>
+
+<p>def be_kits_root_json
+  be_kits_json.and(</p>
+
+<pre><code>include(
+  'meta' =&gt; {
+    'first'   =&gt; anything,
+    'last'    =&gt; anything,
+    'current' =&gt; anything,
+  }
+)
+</code></pre>
+
+<p>  )
+end</p>
+
+<p>def be_kits_json
+  include(</p>
+
+<pre><code>'version' =&gt; '1.0',
+'links'   =&gt; {
+  'kits.beacons'       =&gt; "#{beacons_url}/{kits.beacons}",
+  'kits.overlays'      =&gt; "#{overlays_url}/{kits.overlays}",
+  'beacons.attributes' =&gt; "#{beacon_attributes_url}/{beacons.attributes}",
+},
+'kits'    =&gt; be_an_empty(Array).or(
+  all_match(
+    'id'        =&gt; Fixnum,
+    'name'      =&gt; be_nil.or(be_a String),
+    'api_token' =&gt; String,
+    'account'   =&gt; be_nil.or(
+      match(
+        'id'   =&gt; Fixnum,
+        'name' =&gt; be_nil.or(be_a String),
+      )
+    ),
+    'links'     =&gt; {
+      'self'     =&gt; /\A#{kits_url}\/\d+\z/,
+      'beacons'  =&gt; be_an_empty(Array).or(all be_a Fixnum),
+      'overlays' =&gt; be_an_empty(Array).or(all be_a Fixnum),
+    },
+  ),
+),
+</code></pre>
+
+<p>  )
+end</p>
+
+<p>def include_linked_resources(*resources)
+  resource_maps = resources.each_with_object({}) { |resource, mappings|</p>
+
+<pre><code>mappings.store(resource.to_s, be_an(Array))
+</code></pre>
+
+<p>  }
+  include('linked' => resource_maps)
+end</p>
+
+<p>context "a basic user", "with a kit having no beacons or maps" do
+  # Setup world state</p>
+
+<p>  describe "requesting the kits root" do</p>
+
+<pre><code>it "conforms to the expected JSON structure" do
+  get kits_path, *options
+  expect(json_response).to be_kits_root_json
+end
+
+# More specific specs
+</code></pre>
+
+<p>  end</p>
+
+<p>  describe "requesting a kit" do</p>
+
+<pre><code>it "conforms to the expected JSON structure" do
+  get kit_path(kit), *options
+  expect(json_response).to be_kits_json
+end
+
+# More specific specs
+</code></pre>
+
+<p>  end
+end</p>
+
+<h1>More state specs</h1>
+
+<p>context "a developer user", "sending request with parameter 'include'" do
+  # Setup world state</p>
+
+<p>  describe "requesting the kits root" do</p>
+
+<pre><code>it "conforms to the expected JSON structure with included resources" do
+  get kits_path(include: "beacons,beacon_attributes"), *options
+  expect(json_response).to be_kits_root_json.and(
+    include_linked_resources(:beacons, :beacon_attributes)
+  )
+end
+</code></pre>
+
+<p>  end</p>
+
+<p>  describe "requesting a beacon" do</p>
+
+<pre><code>it "conforms to the expected JSON structure with included resources" do
+  get kit_path(kit, include: "beacons,beacon_attributes"), *options
+  expect(json_response).to be_kits_json.and(
+    include_linked_resources(:beacons, :beacon_attributes)
+  )
+end
+</code></pre>
+
+<p>  end
+end
+```</p>
+
+<p>The possibilities are fairly endless. We could improve this further by allowing
+the factories to take model instances or attribute hashes. We can use those to
+check specific content when available:</p>
+
+<p>```ruby
+def kit_resource(kit = nil)
+  if kit</p>
+
+<pre><code>account = kit.account
+account = { 'id' =&gt; account.id, 'name' =&gt; account.name } if account
+{
+  'id'         =&gt; kit.id,
+  'name'       =&gt; kit.name,
+  'api_token', =&gt; kit.api_token,
+  'account'    =&gt; account,
+}
+</code></pre>
+
+<p>  else</p>
+
+<pre><code>{
+  'id'        =&gt; Fixnum,
+  'name'      =&gt; be_nil.or(be_a String),
+  'api_token' =&gt; String,
+  'account'   =&gt; be_nil.or(
+    match(
+      'id'   =&gt; Fixnum,
+      'name' =&gt; be_nil.or(be_a String),
+    )
+  ),
+}
+</code></pre>
+
+<p>  end
+end</p>
+
+<p>context "a basic user", "with a kit having no beacons or maps" do
+  # Setup world state</p>
+
+<p>  describe "requesting the kits root" do</p>
+
+<pre><code>it "conforms to the expected JSON structure" do
+  get kits_path, *options
+  expect(json_response).to be_kits_root_json
+end
+
+it "has only the expected kit" do
+  get kits_path, *options
+  expect(json_response).to include 'kits' =&gt; [kit_resource(basic_users_kit)]
+end
+</code></pre>
+
+<p>  end</p>
+
+<p>  describe "requesting a beacon" do</p>
+
+<pre><code>it "conforms to the expected JSON structure" do
+  get kit_path(kit), *options
+  expect(json_response).to be_kits_json(basic_users_kit)
+end
+</code></pre>
+
+<p>  end
+end
+```</p>
+
+<p>Happy RSpec'ing!</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Monitoring Specific Messages in RSpec Part 3]]></title>
@@ -768,302 +1022,6 @@ just add it. I also wanted to be able to include any changes easily. Thus, I've
 rolled it all up into a gem: <a href="http://rubygems.org/gems/conjurer"><code>conjurer</code></a></p>
 
 <p><strong>Happy RSpecing!!</strong></p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[How Basic RSpec Works - Simplified]]></title>
-    <link href="http://cupakromer.github.com/blog/2012-12-09-how-basic-rspec-works-simplified.html"/>
-    <updated>2012-12-09T20:15:00-05:00</updated>
-    <id>http://cupakromer.github.com/blog/how-basic-rspec-works-simplified</id>
-    <content type="html"><![CDATA[<p>Recently, I had the privilege of giving a talk regarding
-<a href="http://rspec.info">RSpec</a> at the
-<a href="http://www.meetup.com/Arlington-Ruby/">Arlington Ruby</a> meetup group.
-The talk was about RSpec and how you can take some next steps with it
-(slides here: <a href="http://rspec-next-steps.herokuapp.com">http://rspec-next-steps.herokuapp.com</a>.</p>
-
-<p>The talk was targeted at intermediate RSpec users. There were several in
-attendance whom were fairly new to RSpec. This made some of the talk
-seem like "magic". Based on the questions I received, I wanted to take a
-moment to address some of the general workings of RSpec, in order to
-dispel any "magic" that may seem to be happening.</p>
-
-<p>It is my hope to try to show how <em>some</em> of this works. I won't be
-covering any of the more advanced topics just yet, as the code can get a
-bit complicated, and the point here is to simplify how RSpec works. So
-bare with me and the overly simplistic implementation. The full code is
-available in the following GitHub gist:
-<a href="https://gist.github.com/4247624">https://gist.github.com/4247624</a></p>
-
-<p>First, we need to setup some methods that define the basic usage of
-RSpec: <code>describe</code>, <code>subject</code>, <code>before</code>, <code>after</code>, and <code>it</code>.</p>
-
-<p>First up is the outer <code>describe</code>:</p>
-
-<p><code>ruby
-def describe(object_under_test, &amp;block)
-  @obj_under_test = object_under_test
-  @test_group     = block
-end
-</code></p>
-
-<p>In this example we are specifically only supporting a single <code>describe</code>
-block with no nesting. The reason here is for simplicity.  In our case
-<code>describe</code> is just a method that takes an object or description string
-and block. Nothing special. Hopefully, this helps make it clear that we
-are only dealing with a DSL for creating / setting up examples. We'll
-store away the test object in an instance variable and keep a reference
-to the block for later.</p>
-
-<p>Next, we setup a method for gaining access to subject:</p>
-
-<p>```ruby
-def subject
-  if @obj_under_test.is_a? Class</p>
-
-<pre><code>@subject ||= @obj_under_test.new
-</code></pre>
-
-<p>  else</p>
-
-<pre><code>@obj_under_test
-</code></pre>
-
-<p>  end
-end
-```</p>
-
-<p>If our subject is a <code>class</code>, we create a new memoized instance of it.
-Otherwise, we simply return the object itself.</p>
-
-<p>Next is the commonly used <code>before</code> blocks and the associated <code>after</code>
-friend:</p>
-
-<p><code>ruby
-def before(&amp;block) @before_hooks &lt;&lt; block end
-def after(&amp;block)  @after_hooks  &lt;&lt; block end
-</code></p>
-
-<p>In this simplistic implementation, it is easy to see how they work. We
-just keep a reference to all of the block in a normal array (in Ruby the
-order of insertion is preserved) for use later. We do the same with
-<code>after</code>.</p>
-
-<p>Last up, is the real meat of the examples, the <code>it</code> block:</p>
-
-<p>```ruby
-def it(description = nil, &amp;block)
-  @examples &lt;&lt; Example.new(description, block)
-end</p>
-
-<p>Example = Struct.new(:description, :test) do
-  attr_accessor :result, :failure
-  def call</p>
-
-<pre><code>@result = if test
-            begin
-              test.call
-              :passed
-            rescue =&gt; e
-              @failure = e
-              :failed
-            end
-          else
-            :pending
-          end
-</code></pre>
-
-<p>  end
-end
-```</p>
-
-<p>As with the <code>describe</code> method, this takes an optional description and a
-block to execute (our actual test). We'll need access to both of these
-later, and we'll have multiple examples, so we'll use a simple object to
-keep track of each.  After creating the example object, we'll store it
-in the queue.</p>
-
-<p>At this point it is worth taking a moment to discuss <code>Example#call</code>. We
-named it <code>call</code> so that accessing it is no different than a traditional
-block. This makes it easier to change code later.</p>
-
-<p>Inside <code>Example#call</code>, we attempt to pass <code>call</code> on the block that the
-<code>Example</code> was created with. If this raises an error, we store the
-exception for access later and mark the test as <code>failed</code>. Something to
-note here is that the return value of the <code>test</code> block is ignored. A
-test is marked as <code>passed</code> as long as it does not <code>raise</code> any errors.
-This is also how RSpec behaves.</p>
-
-<p>If no block was given when we created the <code>Example</code>, then we treat it as
-<code>pending</code>.  I have omitted the <code>pending</code> method, common in RSpec due to
-the complexity it would add to this example.</p>
-
-<p>Something else to note, since this is an overly simplistic example, we
-are doing everything in the global main namespace. RSpec does <em>not</em>
-behave this way, but it helps keep our example simple. Due to this,
-we'll need to setup some of our variables:</p>
-
-<p><code>ruby
-@before_hooks = []
-@after_hooks  = []
-@examples     = []
-</code></p>
-
-<p>Additionally, we don't have any matchers defined yet. To keep it simple,
-I'll add a TestUnit style <code>assert</code> matcher.</p>
-
-<p><code>ruby
-def assert(truthy)
-  truthy or raise Error.new("Test failed.")
-end
-</code></p>
-
-<p>At this point, I hope you can start to get the picture of how our
-simplified example will run.  We'll setup our <code>run</code> as follows:</p>
-
-<p>```ruby
-def run
-  raise 'No object under test defined.' unless @obj_under_test</p>
-
-<p>  puts @obj_under_test
-  return unless @test_group</p>
-
-<p>  # Find out what tests need to be run
-  @test_group.call</p>
-
-<p>  # Run the tests
-  @examples.each_with_index do |example, index|</p>
-
-<pre><code>@subject = nil
-puts "\n\nEXAMPLE #{index+1}:"
-begin
-  @before_hooks.each(&amp;:call)
-  example.call
-  puts "\n    #{example.description} =&gt; #{example.result.upcase}\n"
-rescue =&gt; e
-  puts "\n    #{example.description} =&gt; failed\n"
-ensure
-  @after_hooks.reverse_each(&amp;:call)
-end
-</code></pre>
-
-<p>  end
-end
-```</p>
-
-<p>If there is no object under test defined when we <code>run</code> (i.e. <code>describe</code>
-was never called) then we raise an error. Otherwise, we output the
-object under test. If this is a <code>class</code> (as is usual for a top level
-<code>describe</code> block) then we will see the class name. Otherwise, the object
-itself is output.  If it is a string, we'll get the string value,
-otherwise, we'll get the object's <code>#to_s</code> representation.</p>
-
-<p><em>It should be noted that in the real RSpec this outputting is much more
-complicated and left up to various output formatters.</em></p>
-
-<p>Next we will run the <code>test_group</code> (the body of the <code>describe</code> block). This
-in turn call all our <code>before</code>, <code>after</code>, and <code>it</code> methods, which set up our
-environment and define the examples.</p>
-
-<p>All that is left, is to iterate over the examples and run them. Here I'm
-using <code>each_with_index</code> solely to be able to add some debugging output
-to make it a bit clearer how things are running. Normally, this would be
-a simple <code>each</code> iterator.</p>
-
-<p>Before each test run, we make sure we have a new empty <code>subject</code>. We
-then iterate through each of the <code>before</code> blocks in the order they were
-defined. At this point we run the example. After the example runs, I'm
-immediately
-outputting the results to keep things simple. In the real RSpec, this is
-handled by an output formatter. Finally, all of the <code>after</code> hooks are
-run, but in reverse defined order.</p>
-
-<p>It should be noted, that here, as in the real RSpec, if any of the
-<code>before</code> blocks throw an exception the test fails. However, failures in
-any <code>after</code> block are ignored.</p>
-
-<p>That's it. We can then use this to define our sample spec:</p>
-
-<p>```ruby
-class Thing
-  attr_reader :my_value
-  def initialize</p>
-
-<pre><code>@my_value = rand 5
-</code></pre>
-
-<p>  end
-end</p>
-
-<p>describe Thing do
-  before { puts "BEFORE_BLOCK:: First before block" }
-  after do</p>
-
-<pre><code>print "AFTER_BLOCK:: should be called last!"
-print "    Reset @tmp_value(#{@tmp_value.inspect}) =&gt; "
-@tmp_value = nil
-puts "@tmp_value(#{@tmp_value.inspect})"
-</code></pre>
-
-<p>  end</p>
-
-<p>  it 'has access to subject' do</p>
-
-<pre><code>p subject
-assert subject.my_value &lt; 5
-</code></pre>
-
-<p>  end</p>
-
-<p>  it 'subject changes only between tests' do</p>
-
-<pre><code>p subject
-assert subject.equal?(subject)
-</code></pre>
-
-<p>  end</p>
-
-<p>  it "fails on error" do</p>
-
-<pre><code>raise Error.new 'Sad face'
-</code></pre>
-
-<p>  end</p>
-
-<p>  it 'works!' do</p>
-
-<pre><code>assert @tmp_value == 'test'
-</code></pre>
-
-<p>  end</p>
-
-<p>  before do</p>
-
-<pre><code>@tmp_value = 'test'
-print "BEFORE_BLOCK:: Another before block"
-puts "     Set @tmp_value(#{@tmp_value.inspect})"
-</code></pre>
-
-<p>  end</p>
-
-<p>  it 'is pending'</p>
-
-<p>  after { puts "AFTER_BLOCK:: should be called first!!" }
-end
-```</p>
-
-<p>I hope it is clear how this spec will end up running. This is not
-exactly equivalent to how RSpec will treat things (notice that we need
-to explicitly clear <code>@tmp_value</code> in an <code>after</code> block, where RSpec will
-do that for us). This is due to how RSpec creates example classses
-(which we are not using) and how it binds the blocks to different
-scopes; we are strictly using the <code>global</code> namespace to keep the example
-simple.</p>
-
-<p>Check out the gist for the code and output of the sample spec:
-<a href="http://gist.github.com/4247624">http://gist.github.com/4247624</a></p>
-
-<p>Stay tuned for more on RSpec in the future.</p>
 ]]></content>
   </entry>
   

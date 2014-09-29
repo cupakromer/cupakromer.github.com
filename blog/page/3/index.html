@@ -6,8 +6,8 @@
 	<title>Aaron Kromer's Blog</title>
     <meta name="author" content="Aaron Kromer">
     
-	<meta name="description" content="Published on: Jan 7th, 2013 Tags: note, ruby Just one of those little Ruby language quirks. Normally, you have to use
-the implicit receiver when &hellip;">
+	<meta name="description" content="Published on: May 19th, 2013 Tags: rspec, ruby Note: I&#8217;m using Ruby 2.0.0 and RSpec 2.13.1 for these samples. Behavior
+may be slightly &hellip;">
 	
 	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 
@@ -109,6 +109,726 @@ the implicit receiver when &hellip;">
 <!-- begin toload --> 
     <div id="content" class="inner">
         
+
+
+    <article class="post">
+	<h2 class="title">
+		
+		<a href="/blog/2013-05-19-the-bang-is-for-surprise.html">
+		
+			The Bang Is for Surprise</a>
+	</h2>
+    <div class="entry-content">
+    <div class="meta">
+      <div class="date">Published on: 
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-05-19T21:20:00-04:00" pubdate data-updated="true">May 19<span>th</span>, 2013</time></div>
+      <div class="tags">Tags: 
+
+
+	<a class='category' href='/blog/categories/rspec/'>rspec</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
+
+
+</div>
+    </div>
+		<p><strong><em>Note:</em></strong> I&#8217;m using Ruby 2.0.0 and RSpec 2.13.1 for these samples. Behavior
+may be slightly different in older versions. YMMV!</p>
+
+<p>One of the more well known features of <a href="github.com/rspec/rspec-core">RSpec</a> is
+<a href="https://www.relishapp.com/rspec/rspec-core/v/2-13/docs/helper-methods/let-and-let!"><code>let</code></a>.
+It provides a way to create a variable as a
+<a href="http://devblog.avdi.org/2012/10/01/barewords/">bareword</a> which is lazy loaded
+and memoized.</p>
+
+<p>It also has a sibling <code>let!</code>. On the surface, <code>let!</code> is just a <code>let</code> without
+the lazy loading. So any variable defined with a <code>let!</code> will always be created
+before a test. This tool has a few nuances that should be know before you reach
+for it.</p>
+
+<p>Take the following sample. <em>What do you think the result will be?</em></p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">describe</span> <span class="s2">&quot;Which one wins?&quot;</span> <span class="k">do</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">let!</span><span class="p">(</span><span class="ss">:sample</span><span class="p">)</span> <span class="p">{</span> <span class="s2">&quot;using let bang!&quot;</span> <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">context</span> <span class="s2">&quot;inside a context&quot;</span> <span class="k">do</span>
+</span><span class='line'>    <span class="n">let</span><span class="p">(</span><span class="ss">:sample</span><span class="p">)</span> <span class="p">{</span> <span class="s2">&quot;normal let&quot;</span> <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">it</span> <span class="p">{</span> <span class="n">expect</span><span class="p">(</span><span class="n">sample</span><span class="p">)</span><span class="o">.</span><span class="n">to</span> <span class="n">eq</span> <span class="s2">&quot;normal let&quot;</span> <span class="p">}</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The test passes. This may or may not have been surprising. The rules for nested
+<code>let</code>s, is that the <code>let</code> defined closet to the test in the hierarchy wins.
+But, didn&#8217;t I say <code>let!</code> always created the object which was then memoized?</p>
+
+<p>I&#8217;ll get to more about how <code>let</code> and <code>let!</code> are implemented in a minute. For
+now, I want to point out a subtle surprise waiting for you; or possibly bring
+to light that nagging itch at the back of your brain.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">describe</span> <span class="s2">&quot;Using Conflicting Let and Let!&quot;</span> <span class="k">do</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">let!</span><span class="p">(</span><span class="ss">:user</span><span class="p">)</span> <span class="p">{</span> <span class="n">create</span> <span class="ss">:user</span><span class="p">,</span> <span class="nb">name</span><span class="p">:</span> <span class="s1">&#39;bob&#39;</span> <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="c1"># LOTS OF CODE SO YOU CAN&#39;T SEE THE ABOVE LINE</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">context</span> <span class="s2">&quot;inside a context&quot;</span> <span class="k">do</span>
+</span><span class='line'>    <span class="n">let</span><span class="p">(</span><span class="ss">:user</span><span class="p">)</span> <span class="p">{</span> <span class="n">create</span> <span class="ss">:user</span><span class="p">,</span> <span class="nb">name</span><span class="p">:</span> <span class="s1">&#39;alice&#39;</span> <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1"># Will this pass?</span>
+</span><span class='line'>    <span class="n">it</span> <span class="k">do</span>
+</span><span class='line'>      <span class="n">expect</span><span class="p">(</span><span class="no">User</span><span class="o">.</span><span class="n">count</span><span class="p">)</span><span class="o">.</span><span class="n">to</span> <span class="n">eq</span> <span class="mi">0</span>
+</span><span class='line'>    <span class="k">end</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Surprise! The test fails:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='text'><span class='line'>  1) Which one wins? inside a context
+</span><span class='line'>     Failure/Error: expect(User.count).to eq 0
+</span><span class='line'>
+</span><span class='line'>       expected: 0
+</span><span class='line'>            got: 1
+</span><span class='line'>
+</span><span class='line'>       (compared using ==)
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p><a href="https://www.destroyallsoftware.com/talks/wat"><strong>WAT?</strong></a></p>
+
+<p><code>user</code> was never explicitly referenced in our test or a <code>before</code> block. Above I
+also stated that the <code>let</code> closest to the test <em>wins</em>. Theoretically, by these
+rules one would naturally think the test would have passed. Yet, someone was
+created in the database.</p>
+
+<p><em>Which user definition do you think was created?</em></p>
+
+<p>If we dump the <code>User</code> collection before the <code>expect</code> line we see:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="o">[&lt;</span><span class="no">User</span> <span class="nb">id</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">name</span><span class="p">:</span> <span class="s2">&quot;alice&quot;</span><span class="p">,</span> <span class="o">.</span><span class="n">.</span><span class="o">.</span><span class="n">&gt;</span><span class="o">]</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Not only did the inner normal <code>let</code> block appear to override the outer, the
+outer <code>let!</code> behavior took affect!</p>
+
+<p>Let&#8217;s try one more:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">describe</span> <span class="s2">&quot;Using Conflicting Nested Let!&quot;</span> <span class="k">do</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">let!</span><span class="p">(</span><span class="ss">:user</span><span class="p">)</span> <span class="p">{</span> <span class="n">create</span> <span class="ss">:user</span><span class="p">,</span> <span class="nb">name</span><span class="p">:</span> <span class="s1">&#39;bob&#39;</span> <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">context</span> <span class="s2">&quot;inside a context&quot;</span> <span class="k">do</span>
+</span><span class='line'>    <span class="c1"># Now we&#39;ll use the bang version here</span>
+</span><span class='line'>    <span class="n">let!</span><span class="p">(</span><span class="ss">:user</span><span class="p">)</span> <span class="p">{</span> <span class="n">create</span> <span class="ss">:user</span><span class="p">,</span> <span class="nb">name</span><span class="p">:</span> <span class="s1">&#39;alice&#39;</span> <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1"># Will this pass?</span>
+</span><span class='line'>    <span class="n">it</span> <span class="k">do</span>
+</span><span class='line'>      <span class="n">expect</span><span class="p">(</span><span class="no">User</span><span class="o">.</span><span class="n">count</span><span class="p">)</span><span class="o">.</span><span class="n">to</span> <span class="n">eq</span> <span class="mi">1</span>
+</span><span class='line'>    <span class="k">end</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Surprise! It passes:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='text'><span class='line'>Using Conflicting Nested Let!
+</span><span class='line'>  inside a context
+</span><span class='line'>    should eq 1
+</span><span class='line'>
+</span><span class='line'>Finished in 0.02185 seconds
+</span><span class='line'>1 example, 0 failures
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Again, dumping the user created we see our good friend Alice:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="o">[&lt;</span><span class="no">User</span> <span class="nb">id</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">name</span><span class="p">:</span> <span class="s2">&quot;alice&quot;</span><span class="p">,</span> <span class="o">.</span><span class="n">.</span><span class="o">.</span><span class="n">&gt;</span><span class="o">]</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>If you&#8217;re scratching your brain right now. Don&#8217;t worry. I did too the first
+time.  However, once we cover what is happening behind that curtain things will
+make perfect sense.</p>
+
+<h2>How <code>let</code> and <code>let!</code> Work</h2>
+
+<p>&#8220;<strong><em>Pay <del>[no]</del> attention</em></strong> to that man behind the curtain!&#8221;
+- <a href="http://en.wikiquote.org/wiki/The_Wizard_of_Oz#The_Wizard">The Wizard</a></p>
+
+<p>The reason for this behavior, remember I&#8217;m using RSpec 2.13, is that <code>let!</code>
+just calls <code>let</code> and <code>before</code> <a href="https://github.com/rspec/rspec-core/blob/5baa615d/lib/rspec/core/memoized_helpers.rb#L257">behind the scenes</a>:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">def</span> <span class="nf">let!</span><span class="p">(</span><span class="nb">name</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">block</span><span class="p">)</span>
+</span><span class='line'>  <span class="n">let</span><span class="p">(</span><span class="nb">name</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">block</span><span class="p">)</span>
+</span><span class='line'>  <span class="n">before</span> <span class="p">{</span> <span class="nb">__send__</span><span class="p">(</span><span class="nb">name</span><span class="p">)</span> <span class="p">}</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>And all
+<a href="https://github.com/rspec/rspec-core/blob/5baa615d/lib/rspec/core/memoized_helpers.rb#L195"><code>let</code></a>
+does is setup a memoized method based on the name and provided block:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="no">MemoizedHelpers</span><span class="o">.</span><span class="n">module_for</span><span class="p">(</span><span class="nb">self</span><span class="p">)</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="ss">:define_method</span><span class="p">,</span> <span class="nb">name</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">block</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">define_method</span><span class="p">(</span><span class="nb">name</span><span class="p">)</span> <span class="k">do</span>
+</span><span class='line'>  <span class="n">__memoized</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span><span class="nb">name</span><span class="p">)</span> <span class="p">{</span> <span class="o">|</span><span class="n">k</span><span class="o">|</span> <span class="n">__memoized</span><span class="o">[</span><span class="n">k</span><span class="o">]</span> <span class="o">=</span> <span class="k">super</span><span class="p">(</span><span class="o">&amp;</span><span class="kp">nil</span><span class="p">)</span> <span class="p">}</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h3><em>&#8220;Using Conflicting Let and Let!&#8221;</em> Explained</h3>
+
+<p>Going back to the example <em>&#8220;Using Conflicting Let and Let!&#8221;</em> above, where both
+<code>let!</code> and <code>let</code> were used. It should be a bit clearer what is really going on.</p>
+
+<p>When the test runs, the <code>let!</code> has already created the <code>before</code> block, which
+will send the message <code>:user</code>. However, the inner context&#8217;s <code>let</code> created a new
+method with the same name. Thus based on standard Ruby method lookup, when the
+<code>before</code> block runs the inner method receives the message:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">describe</span> <span class="s2">&quot;Using Conflicting Let and Let!&quot;</span> <span class="k">do</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="c1"># Expanding the following out:</span>
+</span><span class='line'>  <span class="c1"># let!(:user) { create :user, name: &#39;bob&#39; }</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">user</span>
+</span><span class='line'>    <span class="n">create</span> <span class="ss">:user</span><span class="p">,</span> <span class="nb">name</span><span class="p">:</span> <span class="s1">&#39;bob&#39;</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>  <span class="n">before</span><span class="p">{</span> <span class="n">user</span> <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">context</span> <span class="s2">&quot;inside a context&quot;</span> <span class="k">do</span>
+</span><span class='line'>    <span class="c1"># Expanding the following out:</span>
+</span><span class='line'>    <span class="c1"># let(:user) { create :user, name: &#39;alice&#39; }</span>
+</span><span class='line'>    <span class="k">def</span> <span class="nf">user</span>
+</span><span class='line'>      <span class="n">create</span> <span class="ss">:user</span><span class="p">,</span> <span class="nb">name</span><span class="p">:</span> <span class="s1">&#39;alice&#39;</span>
+</span><span class='line'>    <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1"># The outer `before` block will run before this example.</span>
+</span><span class='line'>    <span class="c1"># Due to the examples being objects, the inner</span>
+</span><span class='line'>    <span class="c1"># `def user` will receive the `:user` message sent</span>
+</span><span class='line'>    <span class="c1"># by `before`.</span>
+</span><span class='line'>    <span class="n">it</span> <span class="k">do</span>
+</span><span class='line'>      <span class="n">expect</span><span class="p">(</span><span class="no">User</span><span class="o">.</span><span class="n">count</span><span class="p">)</span><span class="o">.</span><span class="n">to</span> <span class="n">eq</span> <span class="mi">0</span>
+</span><span class='line'>    <span class="k">end</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h3><em>&#8220;Using Conflicting Nested Let!&#8221;</em> Explained</h3>
+
+<p>It should also start to make sense what was going on with the <em>&#8220;Using
+Conflicting Nested Let!&#8221;</em> example:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">describe</span> <span class="s2">&quot;Using Conflicting Nested Let!&quot;</span> <span class="k">do</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="c1"># Expanding the following out:</span>
+</span><span class='line'>  <span class="c1"># let!(:user) { create :user, name: &#39;bob&#39; }</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">user</span>
+</span><span class='line'>    <span class="n">create</span> <span class="ss">:user</span><span class="p">,</span> <span class="nb">name</span><span class="p">:</span> <span class="s1">&#39;bob&#39;</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>  <span class="n">before</span><span class="p">{</span> <span class="n">user</span> <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">context</span> <span class="s2">&quot;inside a context&quot;</span> <span class="k">do</span>
+</span><span class='line'>    <span class="c1"># Now we&#39;ll use the bang version here</span>
+</span><span class='line'>    <span class="c1"># Expanding the following out:</span>
+</span><span class='line'>    <span class="c1"># let!(:user) { create :user, name: &#39;alice&#39; }</span>
+</span><span class='line'>    <span class="k">def</span> <span class="nf">user</span>
+</span><span class='line'>      <span class="n">create</span> <span class="ss">:user</span><span class="p">,</span> <span class="nb">name</span><span class="p">:</span> <span class="s1">&#39;alice&#39;</span>
+</span><span class='line'>    <span class="k">end</span>
+</span><span class='line'>    <span class="n">before</span><span class="p">{</span> <span class="n">user</span> <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1"># The outer `before` block will run before this example.</span>
+</span><span class='line'>    <span class="c1"># Due to the examples being objects, the inner</span>
+</span><span class='line'>    <span class="c1"># `def user` will receive the `:user` message sent</span>
+</span><span class='line'>    <span class="c1"># by the outer `before`.</span>
+</span><span class='line'>    <span class="c1">#</span>
+</span><span class='line'>    <span class="c1"># The inner `before` block will run next, also sending</span>
+</span><span class='line'>    <span class="c1"># the message `:user`. This is also received by the</span>
+</span><span class='line'>    <span class="c1"># inner example object. However, since `let` is also</span>
+</span><span class='line'>    <span class="c1"># memoized, this doesn&#39;t actually execute the `:create`.</span>
+</span><span class='line'>    <span class="c1"># It just returns the already created object.</span>
+</span><span class='line'>    <span class="n">it</span> <span class="k">do</span>
+</span><span class='line'>      <span class="n">expect</span><span class="p">(</span><span class="no">User</span><span class="o">.</span><span class="n">count</span><span class="p">)</span><span class="o">.</span><span class="n">to</span> <span class="n">eq</span> <span class="mi">1</span>
+</span><span class='line'>    <span class="k">end</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h3>It&#8217;s Just a Method</h3>
+
+<p>I hope that helps demystify the behavior.</p>
+
+<p>Since <code>let</code> is just a helper for setting up methods on the <a href="http://interblah.net/how-rspec-works">example group object</a>
+you can call <code>super</code> in it; though this is generally not an advised practice.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">describe</span> <span class="s2">&quot;Just a Method&quot;</span> <span class="k">do</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">let!</span><span class="p">(</span><span class="ss">:sample</span><span class="p">)</span> <span class="p">{</span> <span class="s2">&quot;using let bang!&quot;</span> <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">context</span> <span class="s2">&quot;using super()&quot;</span> <span class="k">do</span>
+</span><span class='line'>    <span class="n">let</span><span class="p">(</span><span class="ss">:sample</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>      <span class="nb">p</span> <span class="k">super</span><span class="p">()</span>
+</span><span class='line'>      <span class="s2">&quot;normal let&quot;</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">it</span> <span class="p">{</span> <span class="n">expect</span><span class="p">(</span><span class="n">sample</span><span class="p">)</span><span class="o">.</span><span class="n">to</span> <span class="n">eq</span> <span class="s2">&quot;normal let&quot;</span> <span class="p">}</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='text'><span class='line'>Just a Method
+</span><span class='line'>  using super()
+</span><span class='line'>&quot;using let bang!&quot;
+</span><span class='line'>    should eq &quot;normal let&quot;
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h2>Avoiding Ambiguity</h2>
+
+<p>Since that tiny little <code>!</code> can be hard to see, especially in a sea of <code>let</code>
+declarations, it is easy to miss it and get surprised. Additionally, seeing as
+how mixing <code>let!</code> and <code>let</code> can lead to some surprises, it&#8217;s fairly clear why
+<code>let!</code> has started, rightly so in my opinion, to fall out of favor with some of
+the RSpec crowd.</p>
+
+<p>Luckily, there should be very few situations you should find yourself in where
+you want to reach for <code>let!</code> over <code>let</code>. For me, this is usually a situation
+where I&#8217;m creating some sort of persisted resource. For instance, the factory
+example, or creating a test file on the system.</p>
+
+<h2>Options For Preloading</h2>
+
+<p>If people are moving away from using <code>let!</code>, how should you preload variables?</p>
+
+<h3>Reference in <code>before</code></h3>
+
+<p>Call them just like RSpec does in a <code>before</code>:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">let</span><span class="p">(</span><span class="ss">:bob</span><span class="p">)</span>   <span class="p">{</span> <span class="n">create</span> <span class="ss">:user</span><span class="p">,</span> <span class="nb">name</span><span class="p">:</span> <span class="s1">&#39;bob&#39;</span>   <span class="p">}</span>
+</span><span class='line'><span class="n">let</span><span class="p">(</span><span class="ss">:alice</span><span class="p">)</span> <span class="p">{</span> <span class="n">create</span> <span class="ss">:user</span><span class="p">,</span> <span class="nb">name</span><span class="p">:</span> <span class="s1">&#39;alice&#39;</span> <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">before</span> <span class="k">do</span>
+</span><span class='line'>  <span class="n">bob</span>
+</span><span class='line'>  <span class="n">alice</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>To me this looks a bit odd. People I&#8217;ve talked to tend to have two reactions:</p>
+
+<ol>
+<li>Why are you referencing a <em>&#8216;variable&#8217;</em> and not using it?</li>
+<li>Wouldn&#8217;t it be a bit more explicit to show the creation using an <code>@var</code>?</li>
+</ol>
+
+
+<p>By now you should know that the first response indicates a lack of understand on
+how RSpec works. They aren&#8217;t variables, they are actually bareword messages.</p>
+
+<p>The second response is a valid point. The result would be:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">before</span> <span class="k">do</span>
+</span><span class='line'>  <span class="vi">@bob</span>   <span class="o">=</span> <span class="n">create</span> <span class="ss">:user</span><span class="p">,</span> <span class="nb">name</span><span class="p">:</span> <span class="s1">&#39;bob&#39;</span>
+</span><span class='line'>  <span class="vi">@alice</span> <span class="o">=</span> <span class="n">create</span> <span class="ss">:user</span><span class="p">,</span> <span class="nb">name</span><span class="p">:</span> <span class="s1">&#39;alice&#39;</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>This goes back to preference and style. My preference is to reach for a
+bareword whenever I can. One reason is that, when using an instance variables
+you are now locked in to how both <code>@bob</code> and <code>@alice</code> are created. If you later
+wanted to modify them, you could but at the expense of already having created
+the persisted resource; remember <code>before</code> blocks execute outside-in (this isn&#8217;t
+so much of an issue for lightweight objects). Or you have to roll your own
+memoization scheme (not hard just duplication of work).</p>
+
+<h3>Use a method</h3>
+
+<p>The next common thing I see done is people say: <em>&#8220;I&#8217;ll just wrap it all up in a
+method.&#8221;</em></p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">def</span> <span class="nf">create_users</span>
+</span><span class='line'>  <span class="vi">@bob</span>   <span class="o">=</span> <span class="n">create</span> <span class="ss">:user</span><span class="p">,</span> <span class="nb">name</span><span class="p">:</span> <span class="s1">&#39;bob&#39;</span>
+</span><span class='line'>  <span class="vi">@alice</span> <span class="o">=</span> <span class="n">create</span> <span class="ss">:user</span><span class="p">,</span> <span class="nb">name</span><span class="p">:</span> <span class="s1">&#39;alice&#39;</span>
+</span><span class='line'><span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">before</span> <span class="p">{</span> <span class="n">create_users</span> <span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Now the <code>before</code> looks better; it&#8217;s explicit what is happening. However, the
+new <code>create_users</code> method looks just like our old <code>before</code>. So this really just
+added one level of indirection.  The main advantage here is if we need to
+change the behavior we can just write a new <code>create_users</code> method in an inner
+context. We could also use barewords by making our variables into methods:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">def</span> <span class="nf">bob</span>
+</span><span class='line'>  <span class="vi">@bob</span> <span class="o">||=</span> <span class="n">create</span> <span class="ss">:user</span><span class="p">,</span> <span class="nb">name</span><span class="p">:</span> <span class="s1">&#39;bob&#39;</span>
+</span><span class='line'><span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">def</span> <span class="nf">alice</span>
+</span><span class='line'>  <span class="vi">@alice</span> <span class="o">||=</span> <span class="n">create</span> <span class="ss">:user</span><span class="p">,</span> <span class="nb">name</span><span class="p">:</span> <span class="s1">&#39;alice&#39;</span>
+</span><span class='line'><span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">def</span> <span class="nf">create_users</span>
+</span><span class='line'>  <span class="n">bob</span>
+</span><span class='line'>  <span class="n">alice</span>
+</span><span class='line'><span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">before</span> <span class="p">{</span> <span class="n">create_users</span> <span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Though now we&#8217;ve duplicated the lazy loading and memoizing logic already
+provided by <code>let</code>.</p>
+
+<p>At this point, you&#8217;ll probably say, we can make this a bit more explicit and
+clean it up at the same time:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">def</span> <span class="nf">bob</span>
+</span><span class='line'>  <span class="vi">@bob</span> <span class="o">||=</span> <span class="n">create</span> <span class="ss">:user</span><span class="p">,</span> <span class="nb">name</span><span class="p">:</span> <span class="s1">&#39;bob&#39;</span>
+</span><span class='line'><span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">def</span> <span class="nf">alice</span>
+</span><span class='line'>  <span class="vi">@alice</span> <span class="o">||=</span> <span class="n">create</span> <span class="ss">:user</span><span class="p">,</span> <span class="nb">name</span><span class="p">:</span> <span class="s1">&#39;alice&#39;</span>
+</span><span class='line'><span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">def</span> <span class="nf">create_users</span><span class="p">(</span><span class="o">*</span><span class="n">users</span><span class="p">)</span>
+</span><span class='line'>  <span class="n">users</span><span class="o">.</span><span class="n">each</span><span class="p">{</span> <span class="o">|</span><span class="n">user</span><span class="o">|</span> <span class="n">public_send</span> <span class="n">user</span> <span class="p">}</span>
+</span><span class='line'><span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">before</span> <span class="p">{</span> <span class="n">create_users</span> <span class="ss">:bob</span><span class="p">,</span> <span class="ss">:alice</span> <span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>This brings me to my next option.</p>
+
+<h3>Explicit Preload</h3>
+
+<p>Now there&#8217;s nothing inherently wrong with the above methods. However, to me
+they add a lot of work, without adding much additional value. There are still
+cases where I&#8217;ll break out the generator method as it&#8217;s a very useful tool. But
+this section is about another option, so I&#8217;ll get to it.</p>
+
+<p>Having gone through the cycle of improvement the <em>&#8220;hard&#8221;</em> way, it&#8217;s time to
+show you the shortcut. To me, this is reminiscent of high school calculus
+class where the teacher made me do everything the difficult, time consuming
+way, for a week before teaching how it&#8217;s usually done with the shorter method.</p>
+
+<p>Since pretty much everything in RSpec is already just a method, we can leverage
+that to get our desired behavior. This was discussed in a <a href="https://github.com/rspec/rspec-core/pull/815#issuecomment-14446077">pull request</a>:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">module</span> <span class="nn">LetPreloadable</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">preload</span><span class="p">(</span><span class="o">*</span><span class="n">names</span><span class="p">)</span>
+</span><span class='line'>    <span class="n">before</span> <span class="k">do</span>
+</span><span class='line'>      <span class="n">names</span><span class="o">.</span><span class="n">each</span> <span class="p">{</span> <span class="o">|</span><span class="nb">name</span><span class="o">|</span> <span class="nb">__send__</span> <span class="nb">name</span> <span class="p">}</span>
+</span><span class='line'>    <span class="k">end</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'><span class="no">RSpec</span><span class="o">.</span><span class="n">configure</span> <span class="k">do</span> <span class="o">|</span><span class="n">rspec</span><span class="o">|</span>
+</span><span class='line'>  <span class="n">rspec</span><span class="o">.</span><span class="n">extend</span> <span class="no">LetPreloadable</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>You can place the module code anywhere you want (usually in <code>spec/support</code>).
+Then you&#8217;ll load it in a <code>RSpec.configure</code> block either in the same file or in
+<code>spec_helper.rb</code>.</p>
+
+<p>Our setup now looks like:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">let</span><span class="p">(</span><span class="ss">:bob</span><span class="p">)</span>   <span class="p">{</span> <span class="n">create</span> <span class="ss">:user</span><span class="p">,</span> <span class="nb">name</span><span class="p">:</span> <span class="s1">&#39;bob&#39;</span>   <span class="p">}</span>
+</span><span class='line'><span class="n">let</span><span class="p">(</span><span class="ss">:alice</span><span class="p">)</span> <span class="p">{</span> <span class="n">create</span> <span class="ss">:user</span><span class="p">,</span> <span class="nb">name</span><span class="p">:</span> <span class="s1">&#39;alice&#39;</span> <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">preload</span> <span class="ss">:bob</span><span class="p">,</span> <span class="ss">:alice</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Going back to our original example. There is now more context to what is
+happening without the confusing mix of <code>let</code> and <code>let!</code>:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">describe</span> <span class="s2">&quot;No More Conflicting Let and Let!&quot;</span> <span class="k">do</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">let</span><span class="p">(</span><span class="ss">:user</span><span class="p">)</span> <span class="p">{</span> <span class="n">create</span> <span class="ss">:user</span><span class="p">,</span> <span class="nb">name</span><span class="p">:</span> <span class="s1">&#39;bob&#39;</span> <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">preload</span> <span class="ss">:user</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">context</span> <span class="s2">&quot;inside a context&quot;</span> <span class="k">do</span>
+</span><span class='line'>    <span class="n">let</span><span class="p">(</span><span class="ss">:user</span><span class="p">)</span> <span class="p">{</span> <span class="n">create</span> <span class="ss">:user</span><span class="p">,</span> <span class="nb">name</span><span class="p">:</span> <span class="s1">&#39;alice&#39;</span> <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">it</span> <span class="k">do</span>
+</span><span class='line'>      <span class="n">expect</span><span class="p">(</span><span class="no">User</span><span class="o">.</span><span class="n">count</span><span class="p">)</span><span class="o">.</span><span class="n">to</span> <span class="n">eq</span> <span class="mi">1</span>
+</span><span class='line'>    <span class="k">end</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h2>Introducing <a href="https://github.com/cupakromer/conjurer"><code>Conjurer</code></a> Gem</h2>
+
+<p>I&#8217;ve started using this in enough new projects that I wanted an easy way to
+just add it. I also wanted to be able to include any changes easily. Thus, I&#8217;ve
+rolled it all up into a gem: <a href="http://rubygems.org/gems/conjurer"><code>conjurer</code></a></p>
+
+<p><strong>Happy RSpecing!!</strong></p>
+
+		
+		
+	</div>
+
+<div class="meta">
+	
+</div>
+</article>
 
 
     <article class="post">
@@ -981,113 +1701,12 @@ progression and went with this version.</p>
 </div>
 </article>
 
-
-    <article class="post">
-	<h2 class="title">
-		
-		<a href="/blog/2012-07-18-travis-ci-setup-for-plain-old-ruby.html">
-		
-			Travis CI Setup for Plain Old Ruby</a>
-	</h2>
-    <div class="entry-content">
-    <div class="meta">
-      <div class="date">Published on: 
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2012-07-18T01:11:00-04:00" pubdate data-updated="true">Jul 18<span>th</span>, 2012</time></div>
-      <div class="tags">Tags: 
-
-
-	<a class='category' href='/blog/categories/ruby/'>ruby</a>, <a class='category' href='/blog/categories/travis-ci/'>travis ci</a>
-
-
-</div>
-    </div>
-		<p>I recently wanted to setup some automated testing for a mini project I
-was working on. I was using regular Ruby and wanted to try working with
-<a href="http://travis-ci.org/">Travis CI</a>. For public projects, this is a great <em>free</em>
-resource which I cannot recommend enough.</p>
-
-<p>They have a decent amount of <a href="http://about.travis-ci.org/docs/">documentation</a>
-on how to setup your project. However, it took me longer than I thought
-necessary to get a basic Ruby project configured.</p>
-
-<p>In the end, it came down to needing three things:</p>
-
-<ul>
-<li><p>The <code>rake</code> gem present in either a <code>Gemfile</code> or <code>*.gemspec</code> file</p></li>
-<li><p>A <code>.travis.yml</code> file</p></li>
-</ul>
-
-
-<figure class='code'><figcaption><span>.travis.yml</span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-</pre></td><td class='code'><pre><code class='yaml'><span class='line'><span class="l-Scalar-Plain">language</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">ruby</span>
-</span><span class='line'><span class="l-Scalar-Plain">rvm</span><span class="p-Indicator">:</span>
-</span><span class='line'>  <span class="p-Indicator">-</span> <span class="l-Scalar-Plain">1.9.2</span>
-</span><span class='line'>  <span class="p-Indicator">-</span> <span class="l-Scalar-Plain">1.9.3</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<ul>
-<li>A <code>Rakefile</code> with a default task to run the tests</li>
-</ul>
-
-
-<figure class='code'><figcaption><span>Rakefile</span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="c1">#!/usr/bin/env rake</span>
-</span><span class='line'><span class="nb">require</span> <span class="s2">&quot;bundler/gem_tasks&quot;</span>
-</span><span class='line'>
-</span><span class='line'><span class="nb">require</span> <span class="s1">&#39;rspec/core/rake_task&#39;</span>
-</span><span class='line'>
-</span><span class='line'><span class="n">desc</span> <span class="s1">&#39;Default: Run specs.&#39;</span>
-</span><span class='line'><span class="n">task</span> <span class="ss">default</span><span class="p">:</span> <span class="ss">:spec</span>
-</span><span class='line'>
-</span><span class='line'><span class="n">desc</span> <span class="s1">&#39;Run specs&#39;</span>
-</span><span class='line'><span class="ss">RSpec</span><span class="p">:</span><span class="ss">:Core</span><span class="o">::</span><span class="no">RakeTask</span><span class="o">.</span><span class="n">new</span> <span class="k">do</span> <span class="o">|</span><span class="n">task</span><span class="o">|</span>
-</span><span class='line'>  <span class="n">task</span><span class="o">.</span><span class="n">rspec_opts</span> <span class="o">=</span> <span class="s2">&quot;--format doc&quot;</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Just drop those two files into your project directory and you are ready
-to experience the fun of CI.</p>
-
-		
-		
-	</div>
-
-<div class="meta">
-	
-</div>
-</article>
-
 <nav id="pagenavi">
     
         <a href="/blog/page/2/" class="prev">Prev</a>
     
+    
+        <a href="/blog/page/4/" class="next">Next</a>
     
     <div class="center"><a href="/blog/archives">Blog Archives</a></div>
 </nav>
