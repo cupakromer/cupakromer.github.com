@@ -4,7 +4,7 @@
   <title><![CDATA[Category: ruby | Aaron Kromer's Blog]]></title>
   <link href="http://cupakromer.github.com/blog/categories/ruby/atom.xml" rel="self"/>
   <link href="http://cupakromer.github.com/"/>
-  <updated>2014-09-29T12:00:40-04:00</updated>
+  <updated>2014-09-29T12:12:47-04:00</updated>
   <id>http://cupakromer.github.com/</id>
   <author>
     <name><![CDATA[Aaron Kromer]]></name>
@@ -202,16 +202,36 @@ the factories to take model instances or attribute hashes. We can use those to
 check specific content when available:</p>
 
 <p>```ruby
-def kit_resource(kit = nil)
+def account_resource(account = nil, allow_nil: false)
+  return nil unless account || !allow_nil
+  if account</p>
+
+<pre><code>{
+  'id'   =&gt; account.id,
+  'name' =&gt; account.name
+}
+</code></pre>
+
+<p>  else</p>
+
+<pre><code>{
+  'id'   =&gt; Fixnum,
+  'name' =&gt; be_nil.or(be_a String),
+}
+</code></pre>
+
+<p>  end
+end</p>
+
+<p>def kit_resource(kit = nil, allow_nil: false)
+  return nil unless kit || !allow_nil
   if kit</p>
 
-<pre><code>account = kit.account
-account = { 'id' =&gt; account.id, 'name' =&gt; account.name } if account
-{
-  'id'         =&gt; kit.id,
-  'name'       =&gt; kit.name,
-  'api_token', =&gt; kit.api_token,
-  'account'    =&gt; account,
+<pre><code>{
+  'id'        =&gt; kit.id,
+  'name'      =&gt; kit.name,
+  'api_token' =&gt; kit.api_token,
+  'account'   =&gt; account_resource(kit.account, allow_nil: true),
 }
 </code></pre>
 
@@ -221,12 +241,7 @@ account = { 'id' =&gt; account.id, 'name' =&gt; account.name } if account
   'id'        =&gt; Fixnum,
   'name'      =&gt; be_nil.or(be_a String),
   'api_token' =&gt; String,
-  'account'   =&gt; be_nil.or(
-    match(
-      'id'   =&gt; Fixnum,
-      'name' =&gt; be_nil.or(be_a String),
-    )
-  ),
+  'account'   =&gt; be_nil.or(match account_resource),
 }
 </code></pre>
 
