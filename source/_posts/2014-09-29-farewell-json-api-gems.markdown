@@ -167,27 +167,36 @@ the factories to take model instances or attribute hashes. We can use those to
 check specific content when available:
 
 ```ruby
-def kit_resource(kit = nil)
-  if kit
-    account = kit.account
-    account = { 'id' => account.id, 'name' => account.name } if account
+def account_resource(account = nil, allow_nil: false)
+  return nil unless account || !allow_nil
+  if account
     {
-      'id'         => kit.id,
-      'name'       => kit.name,
-      'api_token', => kit.api_token,
-      'account'    => account,
+      'id'   => account.id,
+      'name' => account.name
+    }
+  else
+    {
+      'id'   => Fixnum,
+      'name' => be_nil.or(be_a String),
+    }
+  end
+end
+
+def kit_resource(kit = nil, allow_nil: false)
+  return nil unless kit || !allow_nil
+  if kit
+    {
+      'id'        => kit.id,
+      'name'      => kit.name,
+      'api_token' => kit.api_token,
+      'account'   => account_resource(kit.account, allow_nil: true),
     }
   else
     {
       'id'        => Fixnum,
       'name'      => be_nil.or(be_a String),
       'api_token' => String,
-      'account'   => be_nil.or(
-        match(
-          'id'   => Fixnum,
-          'name' => be_nil.or(be_a String),
-        )
-      ),
+      'account'   => be_nil.or(match account_resource),
     }
   end
 end
