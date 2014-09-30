@@ -4,7 +4,7 @@
   <title><![CDATA[Category: json | Aaron Kromer's Blog]]></title>
   <link href="http://cupakromer.github.com/blog/categories/json/atom.xml" rel="self"/>
   <link href="http://cupakromer.github.com/"/>
-  <updated>2014-09-29T12:12:47-04:00</updated>
+  <updated>2014-09-30T11:48:36-04:00</updated>
   <id>http://cupakromer.github.com/</id>
   <author>
     <name><![CDATA[Aaron Kromer]]></name>
@@ -64,7 +64,8 @@ When I need to logically group checking several options, the <a href="https://ww
 are the perfect tool.</p>
 
 <p>Often people don't realize that the matcher messages (i.e. <code>exist</code>, <code>be</code>, <code>eq</code>,
-<code>include</code>, etc) are just factories. They are just helper methods which create
+<code>include</code>, etc) are just <del>factories</del> helpers (<a href="#json-factory-helper1">see
+endnotes</a>). They are just helper methods which create
 the matcher object for you. That means, we can easily write our own using our
 app's domain language.</p>
 
@@ -75,121 +76,118 @@ app's domain language.</p>
 site. Though I am assuming integer value are represented as numbers and not
 strings, since that is valid JSON and more meaningful:</p>
 
-<p>```ruby</p>
+<p>``` ruby 'spec/requests/api/kits_spec.rb'
+require 'rails_helper'</p>
 
 <h1>Use common JSON helpers such as: <code>json_response</code>, <code>be_an_empty</code>, <code>all_match</code></h1>
 
 <p>require 'support/json_api_helpers'</p>
 
-<p>def be_kits_root_json
-  be_kits_json.and(</p>
+<p>RSpec.describe "/api/kits", type: :request do
+  def be_kits_root_json</p>
 
-<pre><code>include(
-  'meta' =&gt; {
-    'first'   =&gt; anything,
-    'last'    =&gt; anything,
-    'current' =&gt; anything,
-  }
+<pre><code>be_kits_json.and(
+  include(
+    'meta' =&gt; {
+      'first'   =&gt; anything,
+      'last'    =&gt; anything,
+      'current' =&gt; anything,
+    }
+  )
 )
 </code></pre>
 
-<p>  )
-end</p>
+<p>  end</p>
 
-<p>def be_kits_json
-  include(</p>
+<p>  def be_kits_json</p>
 
-<pre><code>'version' =&gt; '1.0',
-'links'   =&gt; {
-  'kits.beacons'       =&gt; "#{beacons_url}/{kits.beacons}",
-  'kits.overlays'      =&gt; "#{overlays_url}/{kits.overlays}",
-  'beacons.attributes' =&gt; "#{beacon_attributes_url}/{beacons.attributes}",
-},
-'kits'    =&gt; be_an_empty(Array).or(
-  all_match(
-    'id'        =&gt; Fixnum,
-    'name'      =&gt; be_nil.or(be_a String),
-    'api_token' =&gt; String,
-    'account'   =&gt; be_nil.or(
-      match(
-        'id'   =&gt; Fixnum,
-        'name' =&gt; be_nil.or(be_a String),
-      )
+<pre><code>include(
+  'version' =&gt; '1.0',
+  'links'   =&gt; {
+    'kits.beacons'       =&gt; "#{beacons_url}/{kits.beacons}",
+    'kits.overlays'      =&gt; "#{overlays_url}/{kits.overlays}",
+    'beacons.attributes' =&gt; "#{beacon_attributes_url}/{beacons.attributes}",
+  },
+  'kits'    =&gt; be_an_empty(Array).or(
+    all_match(
+      'id'        =&gt; Fixnum,
+      'name'      =&gt; be_nil.or(be_a String),
+      'api_token' =&gt; String,
+      'account'   =&gt; be_nil.or(
+        match(
+          'id'   =&gt; Fixnum,
+          'name' =&gt; be_nil.or(be_a String),
+        )
+      ),
+      'links'     =&gt; {
+        'self'     =&gt; /\A#{kits_url}\/\d+\z/,
+        'beacons'  =&gt; be_an_empty(Array).or(all be_a Fixnum),
+        'overlays' =&gt; be_an_empty(Array).or(all be_a Fixnum),
+      },
     ),
-    'links'     =&gt; {
-      'self'     =&gt; /\A#{kits_url}\/\d+\z/,
-      'beacons'  =&gt; be_an_empty(Array).or(all be_a Fixnum),
-      'overlays' =&gt; be_an_empty(Array).or(all be_a Fixnum),
-    },
   ),
-),
-</code></pre>
-
-<p>  )
-end</p>
-
-<p>def include_linked_resources(*resources)
-  resource_maps = resources.each_with_object({}) { |resource, mappings|</p>
-
-<pre><code>mappings.store(resource.to_s, be_an(Array))
-</code></pre>
-
-<p>  }
-  include('linked' => resource_maps)
-end</p>
-
-<p>context "a basic user", "with a kit having no beacons or maps" do
-  # Setup world state</p>
-
-<p>  describe "requesting the kits root" do</p>
-
-<pre><code>it "conforms to the expected JSON structure" do
-  get kits_path, *options
-  expect(json_response).to be_kits_root_json
-end
-
-# More specific specs
+)
 </code></pre>
 
 <p>  end</p>
 
-<p>  describe "requesting a kit" do</p>
+<p>  def include_linked_resources(*resources)</p>
 
-<pre><code>it "conforms to the expected JSON structure" do
-  get kit_path(kit), *options
-  expect(json_response).to be_kits_json
-end
-
-# More specific specs
+<pre><code>resource_maps = resources.each_with_object({}) { |resource, mappings|
+  mappings.store(resource.to_s, be_an(Array))
+}
+include('linked' =&gt; resource_maps)
 </code></pre>
 
-<p>  end
-end</p>
+<p>  end</p>
 
-<h1>More state specs</h1>
+<p>  context "a basic user", "with a kit having no beacons or maps" do</p>
 
-<p>context "a developer user", "sending request with parameter 'include'" do
-  # Setup world state</p>
+<pre><code># Setup world state
 
-<p>  describe "requesting the kits root" do</p>
+describe "requesting the kits root" do
+  it "conforms to the expected JSON structure" do
+    get kits_path, *options
+    expect(json_response).to be_kits_root_json
+  end
 
-<pre><code>it "conforms to the expected JSON structure with included resources" do
-  get kits_path(include: "beacons,beacon_attributes"), *options
-  expect(json_response).to be_kits_root_json.and(
-    include_linked_resources(:beacons, :beacon_attributes)
-  )
+  # More specific specs
+end
+
+describe "requesting a kit" do
+  it "conforms to the expected JSON structure" do
+    get kit_path(kit), *options
+    expect(json_response).to be_kits_json
+  end
+
+  # More specific specs
 end
 </code></pre>
 
 <p>  end</p>
 
-<p>  describe "requesting a beacon" do</p>
+<p>  # More state specs</p>
 
-<pre><code>it "conforms to the expected JSON structure with included resources" do
-  get kit_path(kit, include: "beacons,beacon_attributes"), *options
-  expect(json_response).to be_kits_json.and(
-    include_linked_resources(:beacons, :beacon_attributes)
-  )
+<p>  context "a developer user", "sending request with parameter 'include'" do</p>
+
+<pre><code># Setup world state
+
+describe "requesting the kits root" do
+  it "conforms to the expected JSON structure with included resources" do
+    get kits_path(include: "beacons,beacon_attributes"), *options
+    expect(json_response).to be_kits_root_json.and(
+      include_linked_resources(:beacons, :beacon_attributes)
+    )
+  end
+end
+
+describe "requesting a beacon" do
+  it "conforms to the expected JSON structure with included resources" do
+    get kit_path(kit, include: "beacons,beacon_attributes"), *options
+    expect(json_response).to be_kits_json.and(
+      include_linked_resources(:beacons, :beacon_attributes)
+    )
+  end
 end
 </code></pre>
 
@@ -279,6 +277,75 @@ end
 ```</p>
 
 <p>Happy RSpec'ing!</p>
+
+<h3>Updates 2014-09-30</h3>
+
+<p>Thanks to everyone who provided feedback on this post. I've take it all into
+consideration and made the following changes:</p>
+
+<ul>
+<li><p>The first code sample now shows the full spec file structure. This hopefully
+makes the important distinction that the helper methods are not being defined
+on <code>main</code>.</p></li>
+<li><p>The line <code>require 'support/json_api_helpers'</code> isn't loading another library.
+Instead it is loading an extracted set of shared helper methods common to
+nearly all JSON API request specs for this project. These have been extracted
+to a module to keep them off of <code>main</code> and placed in <code>spec/support</code>.</p>
+
+<p>This follows the new guidance that specs should only load those files which
+they need. It also makes it easier for your future self and your co-workers
+to come back to the file later and try to find where things are defined.</p>
+
+<p>I'm including the file below for completeness:</p></li>
+</ul>
+
+
+<p>```ruby</p>
+
+<h1>spec/support/json_api_helpers.rb</h1>
+
+<p>module MyApp
+  module RSpec</p>
+
+<pre><code>module JsonApiHelpers
+
+  def json_response
+    JSON.parse response.body
+  end
+
+  def be_an_empty(klass)
+    be_a(klass).and(be_empty)
+  end
+
+  def all_match(*args)
+    all match(*args)
+  end
+
+end
+</code></pre>
+
+<p>  end
+end</p>
+
+<p>RSpec.configure do |c|
+  c.include MyApp::RSpec::JsonApiHelpers, type: :request
+end
+```</p>
+
+<ul>
+<li><p>It was pointed out that <code>all match</code> will handle the empty <code>Array</code> case.
+It is possible to amend the above <code>be_an_empty(Array).or(all_match())</code>
+to instead read: <code>be_an(Array).and(all_match())</code>.</p></li>
+<li><p><a id="json-factory-helper1"></a>This is a helper method. My reference to it
+as a factory was more explicitly attempting to describe it as a helper method
+which instantiates another object. In Rails, people often know of "factories"
+from the "factory vs fixture" debate. Often those factories are relatively
+simple wrappers around constructors. After researching this a little more it
+seems in the larger programming world "factory" is not the proper term.
+Perhaps <a href="http://c2.com/cgi/wiki?CreationMethod">"creator"</a> is. I will move to
+calling them helpers in the future.</p></li>
+</ul>
+
 ]]></content>
   </entry>
   
