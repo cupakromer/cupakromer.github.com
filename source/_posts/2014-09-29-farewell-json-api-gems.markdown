@@ -52,7 +52,8 @@ When I need to logically group checking several options, the [compound matchers]
 are the perfect tool.
 
 Often people don't realize that the matcher messages (i.e. `exist`, `be`, `eq`,
-`include`, etc) are just factories. They are just helper methods which create
+`include`, etc) are just ~~factories~~ helpers ([see
+endnotes](#json-factory-helper1)). They are just helper methods which create
 the matcher object for you. That means, we can easily write our own using our
 app's domain language.
 
@@ -63,100 +64,103 @@ These examples are assuming a JSON structure like one of the ones listed on the
 site. Though I am assuming integer value are represented as numbers and not
 strings, since that is valid JSON and more meaningful:
 
-```ruby
+``` ruby 'spec/requests/api/kits_spec.rb'
+require 'rails_helper'
 # Use common JSON helpers such as: `json_response`, `be_an_empty`, `all_match`
 require 'support/json_api_helpers'
 
-def be_kits_root_json
-  be_kits_json.and(
-    include(
-      'meta' => {
-        'first'   => anything,
-        'last'    => anything,
-        'current' => anything,
-      }
+RSpec.describe "/api/kits", type: :request do
+  def be_kits_root_json
+    be_kits_json.and(
+      include(
+        'meta' => {
+          'first'   => anything,
+          'last'    => anything,
+          'current' => anything,
+        }
+      )
     )
-  )
-end
+  end
 
-def be_kits_json
-  include(
-    'version' => '1.0',
-    'links'   => {
-      'kits.beacons'       => "#{beacons_url}/{kits.beacons}",
-      'kits.overlays'      => "#{overlays_url}/{kits.overlays}",
-      'beacons.attributes' => "#{beacon_attributes_url}/{beacons.attributes}",
-    },
-    'kits'    => be_an_empty(Array).or(
-      all_match(
-        'id'        => Fixnum,
-        'name'      => be_nil.or(be_a String),
-        'api_token' => String,
-        'account'   => be_nil.or(
-          match(
-            'id'   => Fixnum,
-            'name' => be_nil.or(be_a String),
-          )
+  def be_kits_json
+    include(
+      'version' => '1.0',
+      'links'   => {
+        'kits.beacons'       => "#{beacons_url}/{kits.beacons}",
+        'kits.overlays'      => "#{overlays_url}/{kits.overlays}",
+        'beacons.attributes' => "#{beacon_attributes_url}/{beacons.attributes}",
+      },
+      'kits'    => be_an_empty(Array).or(
+        all_match(
+          'id'        => Fixnum,
+          'name'      => be_nil.or(be_a String),
+          'api_token' => String,
+          'account'   => be_nil.or(
+            match(
+              'id'   => Fixnum,
+              'name' => be_nil.or(be_a String),
+            )
+          ),
+          'links'     => {
+            'self'     => /\A#{kits_url}\/\d+\z/,
+            'beacons'  => be_an_empty(Array).or(all be_a Fixnum),
+            'overlays' => be_an_empty(Array).or(all be_a Fixnum),
+          },
         ),
-        'links'     => {
-          'self'     => /\A#{kits_url}\/\d+\z/,
-          'beacons'  => be_an_empty(Array).or(all be_a Fixnum),
-          'overlays' => be_an_empty(Array).or(all be_a Fixnum),
-        },
       ),
-    ),
-  )
-end
-
-def include_linked_resources(*resources)
-  resource_maps = resources.each_with_object({}) { |resource, mappings|
-    mappings.store(resource.to_s, be_an(Array))
-  }
-  include('linked' => resource_maps)
-end
-
-context "a basic user", "with a kit having no beacons or maps" do
-  # Setup world state
-
-  describe "requesting the kits root" do
-    it "conforms to the expected JSON structure" do
-      get kits_path, *options
-      expect(json_response).to be_kits_root_json
-    end
-
-    # More specific specs
+    )
   end
 
-  describe "requesting a kit" do
-    it "conforms to the expected JSON structure" do
-      get kit_path(kit), *options
-      expect(json_response).to be_kits_json
+  def include_linked_resources(*resources)
+    resource_maps = resources.each_with_object({}) { |resource, mappings|
+      mappings.store(resource.to_s, be_an(Array))
+    }
+    include('linked' => resource_maps)
+  end
+
+  context "a basic user", "with a kit having no beacons or maps" do
+    # Setup world state
+
+    describe "requesting the kits root" do
+      it "conforms to the expected JSON structure" do
+        get kits_path, *options
+        expect(json_response).to be_kits_root_json
+      end
+
+      # More specific specs
     end
 
-    # More specific specs
-  end
-end
+    describe "requesting a kit" do
+      it "conforms to the expected JSON structure" do
+        get kit_path(kit), *options
+        expect(json_response).to be_kits_json
+      end
 
-# More state specs
-
-context "a developer user", "sending request with parameter 'include'" do
-  # Setup world state
-
-  describe "requesting the kits root" do
-    it "conforms to the expected JSON structure with included resources" do
-      get kits_path(include: "beacons,beacon_attributes"), *options
-      expect(json_response).to be_kits_root_json.and(
-        include_linked_resources(:beacons, :beacon_attributes)
-      )
+      # More specific specs
     end
   end
 
-  describe "requesting a beacon" do
-    it "conforms to the expected JSON structure with included resources" do
-      get kit_path(kit, include: "beacons,beacon_attributes"), *options
-      expect(json_response).to be_kits_json.and(
-        include_linked_resources(:beacons, :beacon_attributes)
-      )
+  # More state specs
+
+  context "a developer user", "sending request with parameter 'include'" do
+    # Setup world state
+
+    describe "requesting the kits root" do
+      it "conforms to the expected JSON structure with included resources" do
+        get kits_path(include: "beacons,beacon_attributes"), *options
+        expect(json_response).to be_kits_root_json.and(
+          include_linked_resources(:beacons, :beacon_attributes)
+        )
+      end
+    end
+
+    describe "requesting a beacon" do
+      it "conforms to the expected JSON structure with included resources" do
+        get kit_path(kit, include: "beacons,beacon_attributes"), *options
+        expect(json_response).to be_kits_json.and(
+          include_linked_resources(:beacons, :beacon_attributes)
+        )
+      end
     end
   end
 end
@@ -226,3 +230,64 @@ end
 ```
 
 Happy RSpec'ing!
+
+### Updates 2014-09-30
+
+Thanks to everyone who provided feedback on this post. I've take it all into
+consideration and made the following changes:
+
+- The first code sample now shows the full spec file structure. This hopefully
+  makes the important distinction that the helper methods are not being defined
+  on `main`.
+
+- The line `require 'support/json_api_helpers'` isn't loading another library.
+  Instead it is loading an extracted set of shared helper methods common to
+  nearly all JSON API request specs for this project. These have been extracted
+  to a module to keep them off of `main` and placed in `spec/support`.
+
+  This follows the new guidance that specs should only load those files which
+  they need. It also makes it easier for your future self and your co-workers
+  to come back to the file later and try to find where things are defined.
+
+  I'm including the file below for completeness:
+
+```ruby
+# spec/support/json_api_helpers.rb
+module MyApp
+  module RSpec
+    module JsonApiHelpers
+
+      def json_response
+        JSON.parse response.body
+      end
+
+      def be_an_empty(klass)
+        be_a(klass).and(be_empty)
+      end
+
+      def all_match(*args)
+        all match(*args)
+      end
+
+    end
+  end
+end
+
+RSpec.configure do |c|
+  c.include MyApp::RSpec::JsonApiHelpers, type: :request
+end
+```
+
+- It was pointed out that `all match` will handle the empty `Array` case.
+  It is possible to amend the above `be_an_empty(Array).or(all_match())`
+  to instead read: `be_an(Array).and(all_match())`.
+
+- <a id="json-factory-helper1"></a>This is a helper method. My reference to it
+  as a factory was more explicitly attempting to describe it as a helper method
+  which instantiates another object. In Rails, people often know of "factories"
+  from the "factory vs fixture" debate. Often those factories are relatively
+  simple wrappers around constructors. After researching this a little more it
+  seems in the larger programming world "factory" is not the proper term.
+  Perhaps ["creator"](http://c2.com/cgi/wiki?CreationMethod) is. I will move to
+  calling them helpers in the future.
+
